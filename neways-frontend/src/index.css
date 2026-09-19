@@ -1,0 +1,70 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap');
+
+:root {
+  --quantic-blue: #6571FE;
+  --curious-violet: #9966FF;
+  --comfy-soft-blue: #65BEFE;
+  --dark-charcoal: #333333;
+  --bright-gray: #EDEDED;
+}
+
+body {
+  margin: 0;
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--bright-gray);
+  color: var(--dark-charcoal);
+  display: flex;
+  justify-content: center;
+}
+
+/* Simulación de Contenedor Smartphone (390x844px) */
+#root {
+  width: 100%;
+  max-width: 390px;
+  min-height: 844px;
+  background: #ffffff;
+  box-shadow: 0 0 20px rgba(0,0,0,0.1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-page {
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.auth-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.input-pill {
+  background-color: var(--comfy-soft-blue);
+  border-radius: 20px;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #000;
+}
+
+.input-pill input {
+  border: none;
+  background: transparent;
+  width: 100%;
+  outline: none;
+}
+
+.btn-primary {
+  background-color: var(--quantic-blue);
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
