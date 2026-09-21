@@ -1,30 +1,41 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/Login';
-import { AuthProvider } from './context/AuthContext';
+import Register from './pages/Register';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
-function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+// Componente para proteger la ruta de Admin
+function PrivateRoute({ children }) {
+  const token = localStorage.getItem('token');
+  return token ? children : <Navigate to="/login" replace />;
+}
 
-  const handleLoginSuccess = () => {
-    setToken(localStorage.getItem('token'));
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-  };
-
+function AppRoutes() {
   return (
-    <AuthProvider>
-      {!token ? (
-        <Login onLoginSuccess={handleLoginSuccess} />
-      ) : (
-        <AdminDashboard onLogout={handleLogout} />
-      )}
-    </AuthProvider>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route 
+        path="/admin" 
+        element={
+          <PrivateRoute>
+            <AdminDashboard />
+          </PrivateRoute>
+        } 
+      />
+      {/* Redirección por defecto al login o catálogo */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
+  );
+}

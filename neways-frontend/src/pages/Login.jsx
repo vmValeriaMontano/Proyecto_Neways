@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import API from '../services/api';
 
 const Login = ({ onLoginSuccess }) => {
-  const [isRegistering, setIsRegistering] = useState(false);
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    full_name: '',
     email: '',
     password: '',
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,34 +18,35 @@ const Login = ({ onLoginSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
-    const endpoint = isRegistering 
-      ? 'http://localhost:5000/api/auth/register' 
-      : 'http://localhost:5000/api/auth/login';
+    setLoading(true);
 
     try {
-      const response = await axios.post(endpoint, formData);
+      const response = await API.post('/auth/login', formData);
       
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user || {}));
+        
         if (onLoginSuccess) onLoginSuccess();
-      } else if (isRegistering) {
-        alert('Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
-        setIsRegistering(false);
+        navigate('/admin'); // Redirige al dashboard/panel tras iniciar sesión
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Ocurrió un error. Verifica tus credenciales.');
+      setError(
+        err.response?.data?.message || 'Ocurrió un error. Verifica tus credenciales.'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
       <div className="max-w-md w-full space-y-8 bg-gray-900 p-8 rounded-xl border border-gray-800 shadow-2xl">
+        
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-white tracking-wide">NEWAYS</h2>
           <p className="mt-2 text-sm text-gray-400">
-            {isRegistering ? 'Crea tu cuenta' : 'Ingresa a tu cuenta'}
+            Ingresa a tu cuenta
           </p>
         </div>
 
@@ -55,23 +57,6 @@ const Login = ({ onLoginSuccess }) => {
         )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {isRegistering && (
-            <div>
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
-                Nombre Completo
-              </label>
-              <input
-                name="full_name"
-                type="text"
-                required
-                value={formData.full_name}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
-                placeholder="Valeria Montano"
-              />
-            </div>
-          )}
-
           <div>
             <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">
               Correo Electrónico
@@ -104,23 +89,23 @@ const Login = ({ onLoginSuccess }) => {
 
           <button
             type="submit"
-            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-lg transition duration-200"
+            disabled={loading}
+            className="w-full py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-lg transition duration-200 disabled:opacity-50"
           >
-            {isRegistering ? 'Registrarse' : 'Iniciar Sesión'}
+            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
           </button>
         </form>
 
+        {/* REDIRECCIÓN A LA PÁGINA DE REGISTRO */}
         <div className="text-center pt-4 border-t border-gray-800">
-          <button
-            type="button"
-            onClick={() => setIsRegistering(!isRegistering)}
-            className="text-sm text-purple-400 hover:text-purple-300 font-medium"
+          <Link
+            to="/register"
+            className="text-sm text-purple-400 hover:text-purple-300 font-medium transition"
           >
-            {isRegistering
-              ? '¿Ya tienes cuenta? Inicia sesión aquí'
-              : '¿No tienes cuenta? Regístrate aquí'}
-          </button>
+            ¿No tienes cuenta? Regístrate aquí
+          </Link>
         </div>
+
       </div>
     </div>
   );
