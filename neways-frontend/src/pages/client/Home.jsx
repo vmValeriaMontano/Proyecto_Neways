@@ -1,16 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import BottomNav from '../../components/common/BottomNav';
+import API from '../../services/api';
 
 export default function Home() {
   const navigate = useNavigate();
 
-  // Datos mock para "Lo Más Vendido"
-  const popularProducts = [
-    { id: 1, name: 'Producto', price: '$0.00', image: '' },
-    { id: 2, name: 'Producto', price: '$0.00', image: '' },
-  ];
+  // Estados para datos reales del backend
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [loading, setLoading] = useState(true);
+
+  // Carga de datos desde la API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Hacemos peticiones al backend (Ajusta /products y /categories según tus rutas reales)
+        const [resProducts, resCategories] = await Promise.allSettled([
+          API.get('/products'),
+          API.get('/categories')
+        ]);
+
+        if (resProducts.status === 'fulfilled') {
+          setProducts(resProducts.value.data);
+        }
+        if (resCategories.status === 'fulfilled') {
+          setCategories(resCategories.value.data);
+        }
+      } catch (error) {
+        console.error('Error al cargar datos de la BD:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Filtrado simple según categoría seleccionada
+  const filteredProducts = selectedCategory === 'Todos'
+    ? products
+    : products.filter(p => p.category?.name === selectedCategory || p.categoryId === selectedCategory);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col justify-between">
@@ -33,17 +66,32 @@ export default function Home() {
           </button>
         </section>
 
-        {/* Filtros rápidos de categoría */}
+        {/* Filtros dinámicos de categoría cargados desde la BD */}
         <div className="px-4 mt-4 flex items-center justify-start gap-2 overflow-x-auto no-scrollbar">
-          <button className="bg-purple-500 text-white text-xs font-medium px-5 py-1.5 rounded-full shadow-sm shrink-0">
+          <button
+            onClick={() => setSelectedCategory('Todos')}
+            className={`text-xs font-medium px-5 py-1.5 rounded-full shadow-sm shrink-0 transition ${
+              selectedCategory === 'Todos'
+                ? 'bg-purple-500 text-white'
+                : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
+            }`}
+          >
             Todos
           </button>
-          <button className="bg-gray-200 text-slate-700 text-xs font-medium px-5 py-1.5 rounded-full shrink-0">
-            Mujer
-          </button>
-          <button className="bg-gray-200 text-slate-700 text-xs font-medium px-5 py-1.5 rounded-full shrink-0">
-            Accesorios
-          </button>
+          
+          {categories.map((cat) => (
+            <button
+              key={cat.id || cat._id}
+              onClick={() => setSelectedCategory(cat.name || cat.id)}
+              className={`text-xs font-medium px-5 py-1.5 rounded-full shrink-0 transition ${
+                selectedCategory === (cat.name || cat.id)
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
 
         {/* Barra de desplazamiento indicadora */}
@@ -53,24 +101,47 @@ export default function Home() {
           <span className="text-xs">▶</span>
         </div>
 
-        {/* Sección Lo Más Vendido */}
+        {/* Sección Lo Más Vendido / Productos BD */}
         <section className="px-4">
           <h2 className="text-left font-bold text-slate-800 text-sm mb-3">
             Lo Más Vendido
           </h2>
-          <div className="grid grid-cols-2 gap-3">
-            {popularProducts.map((product) => (
-              <div
-                key={product.id}
-                onClick={() => navigate(`/product/${product.id}`)}
-                className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col items-start"
-              >
-                <div className="w-full aspect-square bg-gray-200 rounded-xl mb-2"></div>
-                <span className="text-xs font-semibold text-slate-800">{product.name}</span>
-                <span className="text-xs text-purple-600 font-bold">{product.price}</span>
-              </div>
-            ))}
-          </div>
+
+          {loading ? (
+            <p className="text-xs text-center text-gray-400 py-6">Cargando productos de la base de datos...</p>
+          ) : filteredProducts.length === 0 ? (
+            <p className="text-xs text-center text-gray-400 py-6">No hay productos disponibles.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {filteredProducts.map((product) => {
+                const id = product.id || product._id;
+                const price = typeof product.price === 'number' ? `$${product.price.toFixed(2)}` : product.price;
+                const imageUrl = product.image || product.imageUrl || (product.images && product.images[0]);
+
+                return (
+                  <div
+                    key={id}
+                    onClick={() => navigate(`/product/${id}`)}
+                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col items-start overflow-hidden"
+                  >
+                    <div className="w-full aspect-square bg-gray-200 rounded-xl mb-2 overflow-hidden flex items-center justify-center">
+                      {imageUrl ? (
+                        <img 
+                          src={imageUrl} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <span className="text-[10px] text-gray-400">Sin imagen</span>
+                      )}
+                    </div>
+                    <span className="text-xs font-semibold text-slate-800 line-clamp-1">{product.name}</span>
+                    <span className="text-xs text-purple-600 font-bold mt-1">{price}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
 
