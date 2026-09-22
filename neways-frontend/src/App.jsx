@@ -3,21 +3,43 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Home from './pages/client/Home';
 import { AuthProvider } from './context/AuthContext';
 
-// Componente para proteger la ruta de Admin
+// Componente para proteger la ruta de Admin (valida token Y rol de administrador)
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" replace />;
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Si no es administrador, no lo deja entrar a /admin y lo manda al inicio
+  if (user.role !== 'administrador') {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
 }
 
 function AppRoutes() {
+  // Función para redirigir según el rol guardado tras iniciar sesión
+  const handleLoginRedirect = () => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (user.role === 'administrador') {
+      window.location.href = '/admin';
+    } else {
+      window.location.href = '/';
+    }
+  };
+
   return (
     <Routes>
-      {/* Pasamos la función onLoginSuccess para redireccionar de inmediato al iniciar sesión */}
+      <Route path="/" element={<Home />} />
       <Route 
         path="/login" 
-        element={<Login onLoginSuccess={() => window.location.href = '/admin'} />} 
+        element={<Login onLoginSuccess={handleLoginRedirect} />} 
       />
       <Route path="/register" element={<Register />} />
       <Route 
