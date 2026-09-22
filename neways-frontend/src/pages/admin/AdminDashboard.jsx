@@ -60,6 +60,14 @@ export default function AdminDashboard() {
     }
   };
 
+  // --- MÉTODOS DE SESIÓN ---
+  const handleLogout = async () => {
+    if (logout) {
+      await logout();
+    }
+    window.location.href = '/login';
+  };
+
   // --- MÉTODOS DE PRODUCTOS ---
   const handleSaveProduct = async (e) => {
     e.preventDefault();
@@ -186,7 +194,7 @@ export default function AdminDashboard() {
             <p className="text-sm font-semibold truncate">{user?.full_name}</p>
           </div>
           <button
-            onClick={logout}
+            onClick={handleLogout}
             className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition"
           >
             <LogOut size={16} /> Cerrar Sesión
@@ -369,7 +377,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* TAB USUARIOS (SECCIÓN AGREGADA) */}
+            {/* TAB USUARIOS */}
             {activeTab === 'users' && (
               <div>
                 <h2 className="text-2xl font-bold text-neways-dark mb-1">Usuarios Registrados</h2>

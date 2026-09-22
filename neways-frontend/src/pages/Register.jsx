@@ -182,15 +182,7 @@ export default function Register() {
 
       {/* LOGO INFERIOR */}
       <div className="mb-2">
-        <img 
-          src="/isotipo-blanco.png" 
-          alt="Neways Logo" 
-          className="h-10 object-contain mx-auto"
-          onError={(e) => { e.target.style.display = 'none'; }}
-        />
-        <span className="font-extrabold text-2xl text-[#A076FF] tracking-tight block text-center">
-          neways
-        </span>
+        <img src="/logo-morado-completo.png" alt="Neways Logo" className="h-40" />
       </div>
 
     </div>
