@@ -30,6 +30,8 @@ const Login = ({ onLoginSuccess }) => {
       if (response.data.token) {
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user || {}));
+        
+        // Ejecuta la redirección instantánea configurada en App.jsx
         if (onLoginSuccess) onLoginSuccess();
       } else if (isRegistering) {
         alert('Usuario registrado exitosamente. Ahora puedes iniciar sesión.');
@@ -137,9 +139,7 @@ const Login = ({ onLoginSuccess }) => {
               onClick={() => setIsRegistering(!isRegistering)}
               className="text-sm text-gray-700 hover:text-black font-medium transition-colors"
             >
-              {isRegistering
-                ? '¿Ya tienes cuenta?'
-                : '¿No tienes cuenta?'}
+              {isRegistering ? '¿Ya tienes cuenta?' : '¿No tienes cuenta?'}
             </button>
           </div>
 

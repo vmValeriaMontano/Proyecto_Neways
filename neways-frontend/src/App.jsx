@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 
 // Componente para proteger la ruta de Admin
 function PrivateRoute({ children }) {
@@ -14,7 +14,11 @@ function PrivateRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      {/* Pasamos la función onLoginSuccess para redireccionar de inmediato al iniciar sesión */}
+      <Route 
+        path="/login" 
+        element={<Login onLoginSuccess={() => window.location.href = '/admin'} />} 
+      />
       <Route path="/register" element={<Register />} />
       <Route 
         path="/admin" 
@@ -24,7 +28,7 @@ function AppRoutes() {
           </PrivateRoute>
         } 
       />
-      {/* Redirección por defecto al login o catálogo */}
+      {/* Redirección por defecto al login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
