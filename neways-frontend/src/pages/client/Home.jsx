@@ -18,17 +18,19 @@ export default function Home() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Hacemos peticiones al backend (Ajusta /products y /categories según tus rutas reales)
+
+        // Hacemos peticiones a las rutas reales expuestas en tu servidor Node.js
         const [resProducts, resCategories] = await Promise.allSettled([
           API.get('/products'),
-          API.get('/categories')
+          API.get('/products/categories') // Ruta real configurada en productRoutes
         ]);
 
         if (resProducts.status === 'fulfilled') {
-          setProducts(resProducts.value.data);
+          setProducts(resProducts.value.data || []);
         }
+
         if (resCategories.status === 'fulfilled') {
-          setCategories(resCategories.value.data);
+          setCategories(resCategories.value.data || []);
         }
       } catch (error) {
         console.error('Error al cargar datos de la BD:', error);
@@ -40,10 +42,20 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Filtrado simple según categoría seleccionada
+  // Filtrado flexible según categoría seleccionada
   const filteredProducts = selectedCategory === 'Todos'
     ? products
-    : products.filter(p => p.category?.name === selectedCategory || p.categoryId === selectedCategory);
+    : products.filter(p => {
+        // Obtenemos los campos posibles según lo devuelto por la BD
+        const catName = p.category_name || p.category?.name || p.category || '';
+        const catId = p.category_id || p.categoryId;
+
+        // Comparamos si el botón seleccionado coincide con el nombre o el ID
+        return (
+          String(catName).toLowerCase() === String(selectedCategory).toLowerCase() ||
+          String(catId) === String(selectedCategory)
+        );
+      });
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col justify-between">
@@ -70,28 +82,31 @@ export default function Home() {
         <div className="px-4 mt-4 flex items-center justify-start gap-2 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setSelectedCategory('Todos')}
-            className={`text-xs font-medium px-5 py-1.5 rounded-full shadow-sm shrink-0 transition ${
+            className={`text-xs font-medium px-5 py-1.5 rounded-full shrink-0 transition ${
               selectedCategory === 'Todos'
-                ? 'bg-purple-500 text-white'
+                ? 'bg-purple-500 text-white shadow-sm'
                 : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
             }`}
           >
             Todos
           </button>
-          
-          {categories.map((cat) => (
-            <button
-              key={cat.id || cat._id}
-              onClick={() => setSelectedCategory(cat.name || cat.id)}
-              className={`text-xs font-medium px-5 py-1.5 rounded-full shrink-0 transition ${
-                selectedCategory === (cat.name || cat.id)
-                  ? 'bg-purple-500 text-white'
-                  : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
+
+          {categories.map((cat) => {
+            const catName = cat.name || cat.nombre || cat.id;
+            return (
+              <button
+                key={cat.id || cat._id || catName}
+                onClick={() => setSelectedCategory(catName)}
+                className={`text-xs font-medium px-5 py-1.5 rounded-full shrink-0 transition ${
+                  selectedCategory === catName
+                    ? 'bg-purple-500 text-white shadow-sm'
+                    : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
+                }`}
+              >
+                {catName}
+              </button>
+            );
+          })}
         </div>
 
         {/* Barra de desplazamiento indicadora */}
@@ -110,13 +125,17 @@ export default function Home() {
           {loading ? (
             <p className="text-xs text-center text-gray-400 py-6">Cargando productos de la base de datos...</p>
           ) : filteredProducts.length === 0 ? (
-            <p className="text-xs text-center text-gray-400 py-6">No hay productos disponibles.</p>
+            <p className="text-xs text-center text-gray-400 py-6">
+              No hay productos disponibles para "{selectedCategory}".
+            </p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {filteredProducts.map((product) => {
                 const id = product.id || product._id;
-                const price = typeof product.price === 'number' ? `$${product.price.toFixed(2)}` : product.price;
-                const imageUrl = product.image || product.imageUrl || (product.images && product.images[0]);
+                const price = typeof product.price === 'number'
+                  ? `$${Number(product.price).toFixed(2)}`
+                  : product.price;
+                const imageUrl = product.image_url || product.image || product.imageUrl || (product.images && product.images[0]);
 
                 return (
                   <div
