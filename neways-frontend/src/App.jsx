@@ -6,6 +6,8 @@ import Register from './pages/Register';
 import Home from './pages/client/Home';
 import Catalog from './pages/client/Catalog';
 import ProductDetail from './pages/client/ProductDetail';
+import Cart from './pages/client/Cart';
+
 import Favorites from './pages/client/Favorites';
 
 import { AuthProvider } from './context/AuthContext';
@@ -46,6 +48,8 @@ function AppRoutes() {
       {/* RUTA DE DETALLE DE PRODUCTO (Soporta ID dinámico y estático) */}
       <Route path="/productDetail/:id" element={<ProductDetail />} />
       <Route path="/productDetail" element={<ProductDetail />} />
+      <Route path="/cart" element={<Cart />} />
+
 
       <Route 
         path="/login" 
