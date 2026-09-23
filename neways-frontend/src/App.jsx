@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/client/Home';
 import Catalog from './pages/client/Catalog';
+import Favorites from './pages/client/Favorites';
 
 import { AuthProvider } from './context/AuthContext';
 
@@ -40,6 +41,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/catalog" element={<Catalog />} />
+      <Route path="/favorites" element={<Favorites />} />
       <Route 
         path="/login" 
         element={<Login onLoginSuccess={handleLoginRedirect} />} 
