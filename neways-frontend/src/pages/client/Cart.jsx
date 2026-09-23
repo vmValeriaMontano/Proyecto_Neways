@@ -257,9 +257,9 @@ export default function Cart() {
                 </div>
               </div>
 
-              {/* Botón de Pago / Checkout */}
+              {/* Botón de Pago / ShippingData */}
               <button
-                onClick={() => navigate('/checkout')}
+                onClick={() => navigate('/shippingData')}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs py-3.5 rounded-xl shadow-md transition active:scale-[0.99] mt-1"
               >
                 Proceder al Pago

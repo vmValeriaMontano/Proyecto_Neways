@@ -7,6 +7,8 @@ import Home from './pages/client/Home';
 import Catalog from './pages/client/Catalog';
 import ProductDetail from './pages/client/ProductDetail';
 import Cart from './pages/client/Cart';
+import ShippingData from './pages/client/ShippingData';
+
 
 import Favorites from './pages/client/Favorites';
 
@@ -49,6 +51,7 @@ function AppRoutes() {
       <Route path="/productDetail/:id" element={<ProductDetail />} />
       <Route path="/productDetail" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
+      <Route path="/shippingData" element={<ShippingData />} />
 
 
       <Route 
