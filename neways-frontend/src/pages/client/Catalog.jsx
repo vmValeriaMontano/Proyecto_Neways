@@ -7,9 +7,10 @@ import API from '../../services/api';
 export default function Catalog() {
   const navigate = useNavigate();
 
-  // Estados para productos y categorías
+  // Estados para productos, categorías y favoritos
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [favoriteIds, setFavoriteIds] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Estados de los filtros
@@ -22,9 +23,10 @@ export default function Catalog() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [resProducts, resCategories] = await Promise.allSettled([
+        const [resProducts, resCategories, resFavorites] = await Promise.allSettled([
           API.get('/products'),
-          API.get('/products/categories')
+          API.get('/products/categories'),
+          API.get('/favorites')
         ]);
 
         if (resProducts.status === 'fulfilled') {
@@ -34,8 +36,17 @@ export default function Catalog() {
         if (resCategories.status === 'fulfilled') {
           setCategories(resCategories.value.data || []);
         }
+
+        if (resFavorites.status === 'fulfilled') {
+          const favs = resFavorites.value.data || [];
+          setFavoriteIds(favs.map((p) => p.id || p._id));
+        } else {
+          // Respaldo en localStorage si la API de favoritos falla o no responde
+          const localFavs = JSON.parse(localStorage.getItem('user_favorites') || '[]');
+          setFavoriteIds(localFavs.map((p) => p.id || p._id));
+        }
       } catch (error) {
-        console.error('Error al cargar catálogo:', error);
+        console.error('Error al cargar datos del catálogo:', error);
       } finally {
         setLoading(false);
       }
@@ -43,6 +54,36 @@ export default function Catalog() {
 
     fetchData();
   }, []);
+
+  // Función para agregar / quitar de Favoritos (Toggle)
+  const handleToggleFavorite = async (e, product) => {
+    e.stopPropagation(); // Evita navegar a la vista de detalle
+    const productId = product.id || product._id;
+    const isFav = favoriteIds.includes(productId);
+
+    // Actualización optimista de la UI (cambia inmediatamente)
+    const updatedFavIds = isFav
+      ? favoriteIds.filter((id) => id !== productId)
+      : [...favoriteIds, productId];
+
+    setFavoriteIds(updatedFavIds);
+
+    // Actualización en localStorage
+    let localFavs = JSON.parse(localStorage.getItem('user_favorites') || '[]');
+    if (isFav) {
+      localFavs = localFavs.filter((p) => (p.id || p._id) !== productId);
+    } else {
+      localFavs.push(product);
+    }
+    localStorage.setItem('user_favorites', JSON.stringify(localFavs));
+
+    // Envío de petición al Backend
+    try {
+      await API.post('/favorites/toggle', { productId });
+    } catch (error) {
+      console.warn('Servidor no respondió al guardar favorito, guardado localmente:', error);
+    }
+  };
 
   // Lógica de filtrado por búsqueda y categoría
   const filteredProducts = products.filter((product) => {
@@ -64,7 +105,6 @@ export default function Catalog() {
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sortBy === 'precio-bajo') return Number(a.price) - Number(b.price);
     if (sortBy === 'precio-alto') return Number(b.price) - Number(a.price);
-    // 'recientes' como predeterminado (por ID descendente)
     return (b.id || b._id) - (a.id || a._id);
   });
 
@@ -152,6 +192,7 @@ export default function Catalog() {
             <div className="grid grid-cols-2 gap-3">
               {sortedProducts.map((product) => {
                 const id = product.id || product._id;
+                const isFavorite = favoriteIds.includes(id);
                 const price = typeof product.price === 'number'
                   ? `$${Number(product.price).toFixed(2)}`
                   : product.price || '$0.00';
@@ -163,15 +204,15 @@ export default function Catalog() {
                     onClick={() => navigate(`/product/${id}`)}
                     className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative"
                   >
-                    {/* Botón Favoritos (Corazón) */}
+                    {/* Botón Favoritos (Corazón interactivo) */}
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Agregar lógica de favoritos si aplica
-                      }}
-                      className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-sm z-10"
+                      onClick={(e) => handleToggleFavorite(e, product)}
+                      className={`absolute top-3 right-3 text-base z-10 transition-transform active:scale-125 ${
+                        isFavorite ? 'text-red-500' : 'text-gray-400 hover:text-red-400'
+                      }`}
+                      title={isFavorite ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
                     >
-                      ♡
+                      {isFavorite ? '♥' : '♡'}
                     </button>
 
                     {/* Contenedor de Imagen */}
