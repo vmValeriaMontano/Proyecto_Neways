@@ -4,6 +4,8 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/client/Home';
+import Catalog from './pages/client/Catalog';
+
 import { AuthProvider } from './context/AuthContext';
 
 // Componente para proteger la ruta de Admin (valida token Y rol de administrador)
@@ -37,6 +39,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/catalog" element={<Catalog />} />
       <Route 
         path="/login" 
         element={<Login onLoginSuccess={handleLoginRedirect} />} 
