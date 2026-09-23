@@ -201,7 +201,7 @@ export default function Catalog() {
                 return (
                   <div
                     key={id}
-                    onClick={() => navigate(`/product/${id}`)}
+                    onClick={() => navigate(`/productDetail/${id}`)}
                     className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative"
                   >
                     {/* Botón Favoritos (Corazón interactivo) */}

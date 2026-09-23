@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Home from './pages/client/Home';
 import Catalog from './pages/client/Catalog';
+import ProductDetail from './pages/client/ProductDetail';
 import Favorites from './pages/client/Favorites';
 
 import { AuthProvider } from './context/AuthContext';
@@ -42,6 +43,10 @@ function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/catalog" element={<Catalog />} />
       <Route path="/favorites" element={<Favorites />} />
+      {/* RUTA DE DETALLE DE PRODUCTO (Soporta ID dinámico y estático) */}
+      <Route path="/productDetail/:id" element={<ProductDetail />} />
+      <Route path="/productDetail" element={<ProductDetail />} />
+
       <Route 
         path="/login" 
         element={<Login onLoginSuccess={handleLoginRedirect} />} 
