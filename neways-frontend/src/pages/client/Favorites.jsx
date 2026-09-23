@@ -10,17 +10,14 @@ export default function Favorites() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Carga de productos favoritos
   useEffect(() => {
     const fetchFavorites = async () => {
       try {
         setLoading(true);
 
-        // 1. Intentamos consultar a la API si la ruta existe
         const response = await API.get('/favorites');
         setFavorites(response.data || []);
       } catch (error) {
-        // 2. Si la ruta /favorites no existe en el backend, usamos localStorage como respaldo
         console.info('Ruta /favorites no detectada en backend. Usando almacenamiento local.');
         const localFavs = JSON.parse(localStorage.getItem('user_favorites') || '[]');
         setFavorites(localFavs);
@@ -32,27 +29,33 @@ export default function Favorites() {
     fetchFavorites();
   }, []);
 
-  // Función para eliminar un producto de Favoritos
-  const handleRemoveFavorite = async (e, productId) => {
-    e.stopPropagation(); // Evita navegar a la vista de detalle al presionar el corazón
+  const handleRemoveFavorite = async (e, targetId) => {
+    e.stopPropagation(); // Evita redirigir a la pantalla de detalle
 
     try {
-      // Intenta eliminar en el backend si la ruta existe
-      await API.delete(`/favorites/${productId}`);
+      await API.delete(`/favorites/${targetId}`);
     } catch (error) {
-      // Si falla o no existe la ruta, continúa silenciosamente
+      // Si falla la API, continúa eliminando de la vista
     }
 
-    // Actualiza el estado local y localStorage
-    const updated = favorites.filter((p) => (p.id || p._id) !== productId);
+    const updated = favorites.filter((item) => {
+      const id = item.product_id || item.id || item._id;
+      return id !== targetId;
+    });
+
     setFavorites(updated);
     localStorage.setItem('user_favorites', JSON.stringify(updated));
+  };
+
+  const handleProductClick = (productId) => {
+    if (productId) {
+      navigate(`/productDetail/${productId}`); 
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-100 pb-28 flex flex-col justify-between">
       <div>
-        {/* Reutilización del Header global */}
         <Header cartCount={3} />
 
         <main className="px-4 pt-4">
@@ -65,7 +68,6 @@ export default function Favorites() {
             </span>
           </div>
 
-          {/* Grilla de Productos Favoritos */}
           {loading ? (
             <p className="text-xs text-center text-gray-400 py-10">Cargando tus favoritos...</p>
           ) : favorites.length === 0 ? (
@@ -84,23 +86,27 @@ export default function Favorites() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {favorites.map((product) => {
-                const id = product.id || product._id;
+              {favorites.map((item) => {
+                // Soporte si el objeto viene plano o anidado desde SQL JOIN (e.g. item.product_id vs item.id)
+                const product = item.product || item;
+                const productId = item.product_id || product.id || product._id;
+                
                 const price = typeof product.price === 'number'
                   ? `$${Number(product.price).toFixed(2)}`
                   : product.price || '$0.00';
+                  
                 const imageUrl = product.image_url || product.image || product.imageUrl || (product.images && product.images[0]);
 
                 return (
                   <div
-                    key={id}
-                    onClick={() => navigate(`/product/${id}`)}
-                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative"
+                    key={productId}
+                    onClick={() => handleProductClick(productId)}
+                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative hover:shadow-md transition active:scale-[0.98]"
                   >
-                    {/* Botón para remover de Favoritos (Corazón Relleno) */}
+                    {/* Botón para remover de Favoritos */}
                     <button
-                      onClick={(e) => handleRemoveFavorite(e, id)}
-                      className="absolute top-3 right-3 text-red-500 hover:text-red-600 text-base z-10 p-1"
+                      onClick={(e) => handleRemoveFavorite(e, productId)}
+                      className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center text-red-500 hover:text-red-600 shadow-sm z-10 transition"
                       title="Quitar de Favoritos"
                     >
                       ♥
@@ -136,7 +142,6 @@ export default function Favorites() {
         </main>
       </div>
 
-      {/* Navegación inferior persistente */}
       <BottomNav />
     </div>
   );
