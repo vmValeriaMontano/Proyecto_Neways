@@ -7,22 +7,19 @@ import API from '../../services/api';
 export default function Home() {
   const navigate = useNavigate();
 
-  // Estados para datos reales del backend
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [loading, setLoading] = useState(true);
 
-  // Carga de datos desde la API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Hacemos peticiones a las rutas reales expuestas en tu servidor Node.js
         const [resProducts, resCategories] = await Promise.allSettled([
           API.get('/products'),
-          API.get('/products/categories') // Ruta real configurada en productRoutes
+          API.get('/products/categories')
         ]);
 
         if (resProducts.status === 'fulfilled') {
@@ -42,20 +39,24 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // Filtrado flexible según categoría seleccionada
   const filteredProducts = selectedCategory === 'Todos'
     ? products
     : products.filter(p => {
-        // Obtenemos los campos posibles según lo devuelto por la BD
         const catName = p.category_name || p.category?.name || p.category || '';
         const catId = p.category_id || p.categoryId;
 
-        // Comparamos si el botón seleccionado coincide con el nombre o el ID
         return (
           String(catName).toLowerCase() === String(selectedCategory).toLowerCase() ||
           String(catId) === String(selectedCategory)
         );
       });
+
+  // Función de navegación segura
+  const handleProductClick = (productId) => {
+    if (productId) {
+      navigate(`/productDetail/${productId}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col justify-between">
@@ -78,7 +79,7 @@ export default function Home() {
           </button>
         </section>
 
-        {/* Filtros dinámicos de categoría cargados desde la BD */}
+        {/* Filtros dinámicos de categoría */}
         <div className="px-4 mt-4 flex items-center justify-start gap-2 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setSelectedCategory('Todos')}
@@ -109,14 +110,13 @@ export default function Home() {
           })}
         </div>
 
-        {/* Barra de desplazamiento indicadora */}
         <div className="px-6 my-3 flex items-center gap-2 text-gray-300">
           <span className="text-xs">◀</span>
           <div className="flex-1 h-1 bg-gray-300 rounded-full"></div>
           <span className="text-xs">▶</span>
         </div>
 
-        {/* Sección Lo Más Vendido / Productos BD */}
+        {/* Sección Lo Más Vendido */}
         <section className="px-4">
           <h2 className="text-left font-bold text-slate-800 text-sm mb-3">
             Lo Más Vendido
@@ -131,7 +131,7 @@ export default function Home() {
           ) : (
             <div className="grid grid-cols-2 gap-3">
               {filteredProducts.map((product) => {
-                const id = product.id || product._id;
+                const id = product.id || product._id || product.product_id;
                 const price = typeof product.price === 'number'
                   ? `$${Number(product.price).toFixed(2)}`
                   : product.price;
@@ -140,8 +140,8 @@ export default function Home() {
                 return (
                   <div
                     key={id}
-                    onClick={() => navigate(`/product/${id}`)}
-                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col items-start overflow-hidden"
+                    onClick={() => handleProductClick(id)}
+                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer hover:shadow-md transition border border-gray-100 flex flex-col items-start overflow-hidden active:scale-[0.98]"
                   >
                     <div className="w-full aspect-square bg-gray-200 rounded-xl mb-2 overflow-hidden flex items-center justify-center">
                       {imageUrl ? (
@@ -154,8 +154,12 @@ export default function Home() {
                         <span className="text-[10px] text-gray-400">Sin imagen</span>
                       )}
                     </div>
-                    <span className="text-xs font-semibold text-slate-800 line-clamp-1">{product.name}</span>
-                    <span className="text-xs text-purple-600 font-bold mt-1">{price}</span>
+                    <span className="text-xs font-semibold text-slate-800 line-clamp-1 text-left w-full">
+                      {product.name}
+                    </span>
+                    <span className="text-xs text-purple-600 font-bold mt-1">
+                      {price}
+                    </span>
                   </div>
                 );
               })}
@@ -164,7 +168,6 @@ export default function Home() {
         </section>
       </div>
 
-      {/* Footer / Lema */}
       <footer className="bg-zinc-800 text-white py-6 px-4 text-center mt-8">
         <p className="text-xs font-mono text-gray-300 max-w-xs mx-auto leading-relaxed">
           "Involucrados en el estilo de vida deportivo, ofreciendo productos enfocados al bienestar y la alta calidad."
