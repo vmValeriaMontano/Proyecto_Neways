@@ -1,24 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import BottomNav from '../../components/common/BottomNav';
 import CheckoutSteps from '../../components/common/CheckoutSteps';
 import API from '../../services/api';
 
-// Lista orientativa para El Salvador
-const DEPARTAMENTOS_SV = {
-  'San Salvador': ['San Salvador', 'Soyapango', 'Ilopango', 'Mejicanos', 'Apopa', 'Santa Tecla'],
-  'La Libertad': ['Santa Tecla', 'Antiguo Cuscatlán', 'Nuevo Cuscatlán', 'Colón', 'Zaragoza'],
-  'Santa Ana': ['Santa Ana', 'Chalchuapa', 'Metapán'],
-  'San Miguel': ['San Miguel', 'Ciudad Barrios'],
-  'Sonsonate': ['Sonsonate', 'Acajutla'],
-};
-
 export default function ShippingData() {
   const navigate = useNavigate();
 
   // Cargar datos previos si existen
   const savedData = JSON.parse(localStorage.getItem('checkout_shipping') || '{}');
+
+  const [departments, setDepartments] = useState([]);
+  const [municipalities, setMunicipalities] = useState([]);
+  const [selectedDeptObj, setSelectedDeptObj] = useState(null);
 
   const [formData, setFormData] = useState({
     fullName: savedData.fullName || '',
@@ -27,19 +22,64 @@ export default function ShippingData() {
     municipality: savedData.municipality || '',
     address: savedData.address || '',
     reference: savedData.reference || '',
+    shippingCost: savedData.shippingCost || 0,
   });
 
   const [loading, setLoading] = useState(false);
 
+  // Cargar lista de departamentos al montar
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const res = await API.get('/locations/departments');
+        setDepartments(res.data || []);
+
+        // Si había un departamento previamente guardado, cargar sus municipios
+        if (savedData.department) {
+          const match = res.data.find((d) => d.name === savedData.department);
+          if (match) {
+            setSelectedDeptObj(match);
+            fetchMunicipalities(match.id);
+          }
+        }
+      } catch (err) {
+        console.error('Error al obtener departamentos:', err);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
+  const fetchMunicipalities = async (departmentId) => {
+    try {
+      const res = await API.get(`/locations/departments/${departmentId}/municipalities`);
+      setMunicipalities(res.data || []);
+    } catch (err) {
+      console.error('Error al obtener municipios:', err);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
-      if (name === 'department') {
-        updated.municipality = ''; // Reiniciar municipio si cambia el departamento
+
+    if (name === 'department') {
+      const deptObj = departments.find((d) => d.name === value);
+      setSelectedDeptObj(deptObj || null);
+
+      setFormData((prev) => ({
+        ...prev,
+        department: value,
+        municipality: '', // Reiniciar municipio si cambia el departamento
+        shippingCost: deptObj ? Number(deptObj.shipping_cost) : 0,
+      }));
+
+      if (deptObj) {
+        fetchMunicipalities(deptObj.id);
+      } else {
+        setMunicipalities([]);
       }
-      return updated;
-    });
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -52,7 +92,7 @@ export default function ShippingData() {
 
     try {
       setLoading(true);
-      // Guardar localmente para el siguiente paso
+      // Guardar localmente para el siguiente paso (incluye costo de envío)
       localStorage.setItem('checkout_shipping', JSON.stringify(formData));
 
       // Sync opcional con backend si existe borrador de orden
@@ -129,8 +169,10 @@ export default function ShippingData() {
                   required
                 >
                   <option value="" disabled>Departamento</option>
-                  {Object.keys(DEPARTAMENTOS_SV).map((dep) => (
-                    <option key={dep} value={dep}>{dep}</option>
+                  {departments.map((dep) => (
+                    <option key={dep.id} value={dep.name}>
+                      {dep.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -146,13 +188,22 @@ export default function ShippingData() {
                   required
                 >
                   <option value="" disabled>Municipio</option>
-                  {formData.department &&
-                    DEPARTAMENTOS_SV[formData.department]?.map((mun) => (
-                      <option key={mun} value={mun}>{mun}</option>
-                    ))}
+                  {municipalities.map((mun) => (
+                    <option key={mun.id} value={mun.name}>
+                      {mun.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
+
+            {/* Muestra costo de envío según el departamento seleccionado */}
+            {selectedDeptObj && (
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-2.5 flex justify-between items-center text-xs text-indigo-900 font-medium">
+                <span>Costo de envío estimado:</span>
+                <span className="font-bold text-indigo-700">${Number(selectedDeptObj.shipping_cost).toFixed(2)}</span>
+              </div>
+            )}
 
             {/* Dirección de Entrega */}
             <div className="bg-white rounded-2xl p-3 flex items-start gap-3 border border-gray-100 shadow-xs focus-within:ring-2 focus-within:ring-indigo-400">

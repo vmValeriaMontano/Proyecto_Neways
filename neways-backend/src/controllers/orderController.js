@@ -1,8 +1,6 @@
 const pool = require('../config/db');
 const { processPayment } = require('../services/paymentService');
 
-const SHIPPING_COST = 3.50;
-
 async function createOrder(req, res) {
   const client = await pool.connect();
   try {
@@ -13,6 +11,15 @@ async function createOrder(req, res) {
     }
 
     await client.query("BEGIN");
+
+    // Consultar el costo de envío dinámico según el departamento seleccionado
+    const deptResult = await client.query(
+      "SELECT shipping_cost FROM departments WHERE name = $1 AND is_active = TRUE",
+      [department]
+    );
+
+    // Si el departamento no existe o no está activo, se aplica un costo predeterminado de 3.50
+    const shippingCost = deptResult.rows.length > 0 ? Number(deptResult.rows[0].shipping_cost) : 3.50;
 
     // Consultar items del carrito con bloqueo pesimista
     const cartResult = await client.query(
@@ -39,7 +46,7 @@ async function createOrder(req, res) {
     }
 
     const subtotal = cartResult.rows.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
-    const total = subtotal + SHIPPING_COST;
+    const total = subtotal + shippingCost;
 
     // Procesar pago
     const paymentResult = await processPayment(card || {});
@@ -63,7 +70,7 @@ async function createOrder(req, res) {
         address,
         addressReference || null,
         subtotal.toFixed(2),
-        SHIPPING_COST.toFixed(2),
+        shippingCost.toFixed(2),
         total.toFixed(2)
       ]
     );
@@ -91,7 +98,7 @@ async function createOrder(req, res) {
     return res.status(201).json({
       orderId,
       subtotal: Number(subtotal.toFixed(2)),
-      shipping: SHIPPING_COST,
+      shipping: shippingCost,
       total: Number(total.toFixed(2)),
       transactionId: paymentResult.transactionId,
       createdAt: orderResult.rows[0].created_at

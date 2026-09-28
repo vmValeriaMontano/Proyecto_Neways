@@ -31,4 +31,16 @@ router.put('/orders/:id/status', adminController.updateOrderStatus);
 router.get('/users', adminController.getAllUsers);
 router.put('/users/:id/role', adminController.updateUserRole);
 
+// --- Departamentos (CRUD ADMIN) ---
+router.get('/departments', adminController.getAllDepartmentsAdmin);
+router.post('/departments', adminController.createDepartment);
+router.put('/departments/:id', adminController.updateDepartment);
+router.delete('/departments/:id', adminController.deleteDepartment);
+
+// --- Municipios (CRUD ADMIN) ---
+router.get('/departments/:departmentId/municipalities', adminController.getMunicipalitiesAdmin);
+router.post('/municipalities', adminController.createMunicipality);
+router.put('/municipalities/:id', adminController.updateMunicipality);
+router.delete('/municipalities/:id', adminController.deleteMunicipality);
+
 module.exports = router;

@@ -129,7 +129,6 @@ async function updateProduct(req, res) {
 async function deleteProduct(req, res) {
   try {
     const { id } = req.params;
-    // Eliminación lógica cambiando el estado
     const result = await pool.query(
       'UPDATE products SET is_active = FALSE WHERE id = $1 RETURNING *',
       [id]
@@ -302,6 +301,157 @@ async function updateUserRole(req, res) {
   }
 }
 
+// ==========================================
+// 6. GESTIÓN DE DEPARTAMENTOS Y MUNICIPIOS (CRUD ADMIN)
+// ==========================================
+
+async function getAllDepartmentsAdmin(req, res) {
+  try {
+    const result = await pool.query('SELECT * FROM departments ORDER BY id ASC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al listar departamentos (Admin):', err);
+    res.status(500).json({ message: 'Error al obtener departamentos.' });
+  }
+}
+
+async function createDepartment(req, res) {
+  try {
+    const { name, shipping_cost, is_active } = req.body;
+    if (!name || shipping_cost === undefined) {
+      return res.status(400).json({ message: 'Nombre y costo de envío son obligatorios.' });
+    }
+
+    const activeState = is_active !== undefined ? is_active : true;
+    const result = await pool.query(
+      'INSERT INTO departments (name, shipping_cost, is_active) VALUES ($1, $2, $3) RETURNING *',
+      [name, shipping_cost, activeState]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error al crear departamento:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ message: 'Ya existe un departamento con ese nombre.' });
+    }
+    res.status(500).json({ message: 'Error al crear departamento.' });
+  }
+}
+
+async function updateDepartment(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, shipping_cost, is_active } = req.body;
+
+    const result = await pool.query(
+      `UPDATE departments 
+       SET name = COALESCE($1, name),
+           shipping_cost = COALESCE($2, shipping_cost),
+           is_active = COALESCE($3, is_active)
+       WHERE id = $4
+       RETURNING *`,
+      [name, shipping_cost, is_active, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Departamento no encontrado.' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error al actualizar departamento:', err);
+    res.status(500).json({ message: 'Error al actualizar departamento.' });
+  }
+}
+
+async function deleteDepartment(req, res) {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM departments WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Departamento no encontrado.' });
+    }
+    res.json({ message: 'Departamento eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error al eliminar departamento:', err);
+    res.status(500).json({ message: 'Error al eliminar departamento.' });
+  }
+}
+
+async function getMunicipalitiesAdmin(req, res) {
+  try {
+    const { departmentId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM municipalities WHERE department_id = $1 ORDER BY id ASC',
+      [departmentId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al listar municipios (Admin):', err);
+    res.status(500).json({ message: 'Error al obtener municipios.' });
+  }
+}
+
+async function createMunicipality(req, res) {
+  try {
+    const { department_id, name, is_active } = req.body;
+    if (!department_id || !name) {
+      return res.status(400).json({ message: 'ID de departamento y nombre de municipio son requeridos.' });
+    }
+
+    const activeState = is_active !== undefined ? is_active : true;
+    const result = await pool.query(
+      'INSERT INTO municipalities (department_id, name, is_active) VALUES ($1, $2, $3) RETURNING *',
+      [department_id, name, activeState]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error al crear municipio:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ message: 'Este municipio ya existe en el departamento especificado.' });
+    }
+    res.status(500).json({ message: 'Error al crear municipio.' });
+  }
+}
+
+async function updateMunicipality(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, is_active } = req.body;
+
+    const result = await pool.query(
+      `UPDATE municipalities 
+       SET name = COALESCE($1, name),
+           is_active = COALESCE($2, is_active)
+       WHERE id = $3
+       RETURNING *`,
+      [name, is_active, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Municipio no encontrado.' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error al actualizar municipio:', err);
+    res.status(500).json({ message: 'Error al actualizar municipio.' });
+  }
+}
+
+async function deleteMunicipality(req, res) {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM municipalities WHERE id = $1 RETURNING *', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Municipio no encontrado.' });
+    }
+    res.json({ message: 'Municipio eliminado correctamente.' });
+  } catch (err) {
+    console.error('Error al eliminar municipio:', err);
+    res.status(500).json({ message: 'Error al eliminar municipio.' });
+  }
+}
+
 module.exports = {
   // Categorías
   getCategories,
@@ -321,5 +471,15 @@ module.exports = {
   updateOrderStatus,
   // Usuarios
   getAllUsers,
-  updateUserRole
+  updateUserRole,
+  // Departamentos
+  getAllDepartmentsAdmin,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+  // Municipios
+  getMunicipalitiesAdmin,
+  createMunicipality,
+  updateMunicipality,
+  deleteMunicipality
 };

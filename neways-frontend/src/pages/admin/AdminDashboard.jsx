@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { 
-  Package, Tag, Layers, ShoppingBag, Users, LogOut, Plus, Edit2, Trash2, RefreshCw 
+  Package, Tag, Layers, ShoppingBag, Users, MapPin, LogOut, Plus, Edit2, Trash2, RefreshCw 
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -14,6 +14,7 @@ export default function AdminDashboard() {
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [usersList, setUsersList] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Modal y Formulario Productos
@@ -31,6 +32,11 @@ export default function AdminDashboard() {
   const [showVariantModal, setShowVariantModal] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [variantForm, setVariantForm] = useState({ size: 'M', color: 'Negro', stock: 10 });
+
+  // Modal y Formulario Ubicaciones (Departamentos / Costo de envío)
+  const [showDepartmentModal, setShowDepartmentModal] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState(null);
+  const [departmentForm, setDepartmentForm] = useState({ name: '', shipping_cost: '' });
 
   useEffect(() => {
     fetchData();
@@ -52,6 +58,9 @@ export default function AdminDashboard() {
       } else if (activeTab === 'users') {
         const res = await API.get('/admin/users');
         setUsersList(res.data || []);
+      } else if (activeTab === 'locations') {
+        const res = await API.get('/admin/departments');
+        setDepartments(res.data || []);
       }
     } catch (err) {
       console.error('Error al cargar datos:', err);
@@ -126,6 +135,29 @@ export default function AdminDashboard() {
     }
   };
 
+  // --- MÉTODOS DE DEPARTAMENTOS Y ENVÍOS ---
+  const handleSaveDepartment = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingDepartment) {
+        await API.put(`/admin/departments/${editingDepartment.id}`, departmentForm);
+      } else {
+        await API.post('/admin/departments', departmentForm);
+      }
+      setShowDepartmentModal(false);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error al guardar departamento');
+    }
+  };
+
+  const handleDeleteDepartment = async (id) => {
+    if (confirm('¿Deseas eliminar este departamento?')) {
+      await API.delete(`/admin/departments/${id}`);
+      fetchData();
+    }
+  };
+
   // --- MÉTODOS DE PEDIDOS ---
   const handleUpdateOrderStatus = async (orderId, newStatus) => {
     try {
@@ -175,6 +207,15 @@ export default function AdminDashboard() {
               }`}
             >
               <ShoppingBag size={18} /> Pedidos
+            </button>
+
+            <button
+              onClick={() => setActiveTab('locations')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
+                activeTab === 'locations' ? 'bg-neways-purple text-white' : 'text-gray-400 hover:bg-neways-dark-surface hover:text-white'
+              }`}
+            >
+              <MapPin size={18} /> Ubicaciones / Envíos
             </button>
 
             <button
@@ -333,6 +374,72 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {/* TAB UBICACIONES Y COSTOS DE ENVÍO */}
+            {activeTab === 'locations' && (
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-neways-dark">Departamentos y Costos de Envío</h2>
+                    <p className="text-sm text-neways-gray-subtext">Gestiona los departamentos habilitados y su precio de envío.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingDepartment(null);
+                      setDepartmentForm({ name: '', shipping_cost: '' });
+                      setShowDepartmentModal(true);
+                    }}
+                    className="flex items-center gap-2 bg-neways-purple hover:bg-neways-purple-hover text-white px-4 py-2 rounded-lg font-medium shadow-md transition"
+                  >
+                    <Plus size={18} /> Nuevo Departamento
+                  </button>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-neways-gray-border overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-slate-50 border-b text-xs uppercase font-semibold text-neways-gray-subtext">
+                      <tr>
+                        <th className="p-4">ID</th>
+                        <th className="p-4">Departamento</th>
+                        <th className="p-4">Costo de Envío</th>
+                        <th className="p-4 text-center">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neways-gray-border text-sm">
+                      {departments.map((d) => (
+                        <tr key={d.id} className="hover:bg-slate-50">
+                          <td className="p-4 font-bold text-gray-500">#{d.id}</td>
+                          <td className="p-4 font-semibold text-neways-dark">{d.name}</td>
+                          <td className="p-4 font-bold text-neways-purple">${Number(d.shipping_cost).toFixed(2)}</td>
+                          <td className="p-4">
+                            <div className="flex justify-center gap-2">
+                              <button
+                                title="Editar Departamento"
+                                onClick={() => {
+                                  setEditingDepartment(d);
+                                  setDepartmentForm({ name: d.name, shipping_cost: d.shipping_cost });
+                                  setShowDepartmentModal(true);
+                                }}
+                                className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              <button
+                                title="Eliminar Departamento"
+                                onClick={() => handleDeleteDepartment(d.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
             {/* TAB PEDIDOS */}
             {activeTab === 'orders' && (
               <div>
@@ -427,7 +534,54 @@ export default function AdminDashboard() {
         )}
       </main>
 
-      {/* MODALES... */}
+      {/* MODAL DEPARTAMENTO */}
+      {showDepartmentModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <h3 className="text-xl font-bold mb-4">{editingDepartment ? 'Editar Departamento' : 'Nuevo Departamento'}</h3>
+            <form onSubmit={handleSaveDepartment} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Nombre</label>
+                <input
+                  type="text"
+                  required
+                  value={departmentForm.name}
+                  onChange={(e) => setDepartmentForm({ ...departmentForm, name: e.target.value })}
+                  className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-neways-purple outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Costo de Envío ($)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={departmentForm.shipping_cost}
+                  onChange={(e) => setDepartmentForm({ ...departmentForm, shipping_cost: e.target.value })}
+                  className="w-full border rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-neways-purple outline-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDepartmentModal(false)}
+                  className="px-4 py-2 border rounded-lg text-sm hover:bg-slate-100"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-neways-purple hover:bg-neways-purple-hover text-white rounded-lg text-sm font-medium"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODALES PRODUCTO, CATEGORÍA Y VARIANTE */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
