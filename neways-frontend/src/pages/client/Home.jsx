@@ -129,7 +129,7 @@ export default function Home() {
               No hay productos disponibles para "{selectedCategory}".
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {filteredProducts.map((product) => {
                 const id = product.id || product._id || product.product_id;
                 const price = typeof product.price === 'number'

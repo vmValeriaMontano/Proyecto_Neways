@@ -189,7 +189,7 @@ export default function Catalog() {
               No se encontraron productos disponibles.
             </p>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {sortedProducts.map((product) => {
                 const id = product.id || product._id;
                 const isFavorite = favoriteIds.includes(id);
@@ -207,7 +207,7 @@ export default function Catalog() {
                     {/* Botón Favoritos (Corazón interactivo) */}
                     <button
                       onClick={(e) => handleToggleFavorite(e, product)}
-                      className={`absolute top-3 right-3 text-base z-10 transition-transform active:scale-125 ${
+                      className={`absolute top-3 right-3 text-3xl z-10 transition-transform active:scale-125 ${
                         isFavorite ? 'text-red-500' : 'text-gray-400 hover:text-red-400'
                       }`}
                       title={isFavorite ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
@@ -216,7 +216,7 @@ export default function Catalog() {
                     </button>
 
                     {/* Contenedor de Imagen */}
-                    <div className="w-full aspect-square bg-gray-200 rounded-xl mb-2 overflow-hidden flex items-center justify-center">
+                    <div className="w-full  aspect-square bg-gray-200 rounded-xl mb-2 overflow-hidden flex items-center justify-center">
                       {imageUrl ? (
                         <img
                           src={imageUrl}

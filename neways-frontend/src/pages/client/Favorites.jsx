@@ -106,7 +106,7 @@ export default function Favorites() {
                     {/* Botón para remover de Favoritos */}
                     <button
                       onClick={(e) => handleRemoveFavorite(e, productId)}
-                      className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center text-red-500 hover:text-red-600 shadow-sm z-10 transition"
+                      className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center text-2xl text-red-500 hover:text-red-600 shadow-sm z-10 transition"
                       title="Quitar de Favoritos"
                     >
                       ♥
