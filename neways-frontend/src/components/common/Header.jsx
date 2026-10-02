@@ -6,10 +6,10 @@ export default function Header({ cartCount = 0 }) {
   const navigate = useNavigate();
 
   return (
-    <header className="bg-white sticky top-0 z-40 px-4 py-3 shadow-sm border-b border-gray-100 flex items-center justify-between">
+    <header className="bg-white sticky top-0 z-40 px-4 py- shadow-sm border-b border-gray-100 flex items-center justify-between">
       {/* Logo NEWAYS */}
       <Link to="/" className="flex items-center gap-2">
-        <img src="/logo-morado-completo.png" alt="NEWAYS" className="h-7 object-contain" />
+        <img src="/logo-morado-completo.png" alt="NEWAYS" className="h-14 md:h-16 lg:h-20 object-contain transition-all duration-300" />
       </Link>
 
       {/* Iconos derechas: Búsqueda y Carrito */}

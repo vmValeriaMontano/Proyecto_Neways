@@ -80,7 +80,7 @@ export default function Home() {
         </section>
 
         {/* Filtros dinámicos de categoría */}
-        <div className="px-4 mt-4 flex items-center justify-start gap-2 overflow-x-auto no-scrollbar">
+        <div className="px-4 mt-4 mb-6 flex items-center justify-start gap-2 overflow-x-auto no-scrollbar">
           <button
             onClick={() => setSelectedCategory('Todos')}
             className={`text-xs font-medium px-5 py-1.5 rounded-full shrink-0 transition ${
@@ -108,12 +108,6 @@ export default function Home() {
               </button>
             );
           })}
-        </div>
-
-        <div className="px-6 my-3 flex items-center gap-2 text-gray-300">
-          <span className="text-xs">◀</span>
-          <div className="flex-1 h-1 bg-gray-300 rounded-full"></div>
-          <span className="text-xs">▶</span>
         </div>
 
         {/* Sección Lo Más Vendido */}
