@@ -1,6 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+
 
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
@@ -34,7 +35,7 @@ app.use('/api/admin', adminRoutes); // <-- MÓDULO ADMINISTRATIVO COMPLETO
 // Manejo de errores
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT ||5000;
 app.listen(PORT, () => {
   console.log(`Servidor de Neways escuchando en el puerto ${PORT}`);
 });

@@ -8,6 +8,7 @@ import Catalog from './pages/client/Catalog';
 import ProductDetail from './pages/client/ProductDetail';
 import Cart from './pages/client/Cart';
 import ShippingData from './pages/client/ShippingData';
+import UserProfile from './pages/client/UserProfile';
 
 
 import Favorites from './pages/client/Favorites';
@@ -52,6 +53,7 @@ function AppRoutes() {
       <Route path="/productDetail" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/shippingData" element={<ShippingData />} />
+      <Route path="/profile" element={<UserProfile />} />
 
 
       <Route 

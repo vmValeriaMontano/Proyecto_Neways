@@ -78,3 +78,60 @@ async function login(req, res) {
 }
 
 module.exports = { register, login };
+
+async function getProfile(req, res) {
+  try {
+    const result = await pool.query(
+      'SELECT id, full_name, email, role, phone, created_at FROM users WHERE id = $1',
+      [req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    return res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error al obtener perfil:', err);
+    return res.status(500).json({ message: 'Error al obtener los datos del perfil.' });
+  }
+}
+
+async function updateProfile(req, res) {
+  try {
+    const fullName = typeof req.body.fullName === 'string' ? req.body.fullName.trim() : '';
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : '';
+
+    if (!fullName || !email) {
+      return res.status(400).json({ message: 'El nombre y el correo son obligatorios.' });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Ingresa un correo electrónico válido.' });
+    }
+
+    const result = await pool.query(
+      `UPDATE users
+       SET full_name = $1, email = $2, phone = $3
+       WHERE id = $4
+       RETURNING id, full_name, email, role, phone, created_at`,
+      [fullName, email, phone || null, req.user.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    return res.json(result.rows[0]);
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(409).json({ message: 'Ese correo ya está registrado.' });
+    }
+    console.error('Error al actualizar perfil:', err);
+    return res.status(500).json({ message: 'Error al actualizar los datos del perfil.' });
+  }
+}
+
+module.exports.getProfile = getProfile;
+module.exports.updateProfile = updateProfile;
