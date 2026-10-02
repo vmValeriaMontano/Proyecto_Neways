@@ -99,7 +99,7 @@ export default function ShippingData() {
       await API.post('/orders/shipping-address', formData).catch(() => {});
 
       // Redirigir al Paso 2: Pago
-      navigate('/checkout/payment');
+      navigate('/paymentData');
     } catch (error) {
       console.error('Error guardando dirección:', error);
     } finally {
