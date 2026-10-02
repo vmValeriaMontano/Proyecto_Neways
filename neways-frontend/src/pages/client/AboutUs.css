@@ -1,0 +1,211 @@
+.about {
+  --about-primary: #5b5bf0;
+  --about-primary-dark: #4545d6;
+  --about-bg: #f2f2f2;
+  --about-card: #ffffff;
+  --about-text: #1a1a1f;
+  --about-muted: #5c5c66;
+
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px 96px; /* espacio para la barra de navegación inferior */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--about-bg);
+  color: var(--about-text);
+  font-family: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Banner */
+.about__banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 150px;
+  padding: 20px 16px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: linear-gradient(110deg, var(--about-primary) 0 58%, #dcdcdc 58% 100%);
+  color: #fff;
+}
+.about__banner-texto {
+  max-width: 55%;
+}
+.about__banner h1 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.about__banner p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+.about__banner-marca {
+  color: var(--about-text);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+/* Tarjetas */
+.about__card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 16px;
+  background: var(--about-card);
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+.about__card-icono {
+  flex: 0 0 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  color: var(--about-text);
+  border: 2px solid var(--about-primary);
+  border-radius: 50%;
+}
+.about__card-icono svg {
+  width: 32px;
+  height: 32px;
+}
+.about__card-cuerpo {
+  flex: 1;
+  padding-left: 16px;
+  border-left: 1px solid #d6d6dc;
+}
+.about__card h2 {
+  display: inline-block;
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+.about__card h2::after {
+  content: "";
+  display: block;
+  width: 60%;
+  height: 2px;
+  margin-top: 3px;
+  background: var(--about-primary);
+}
+.about__card p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--about-muted);
+}
+
+/* Valores */
+.about__valores {
+  padding: 20px 16px;
+  background: var(--about-card);
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+.about__valores h2 {
+  margin: 0 0 14px;
+  font-size: 0.95rem;
+}
+.about__valores ul {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.about__valores li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.about__valor-icono {
+  flex: 0 0 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--about-primary);
+  background: #ececff;
+  border-radius: 50%;
+}
+.about__valor-icono svg {
+  width: 22px;
+  height: 22px;
+}
+.about__valores h3 {
+  margin: 0 0 2px;
+  font-size: 0.88rem;
+}
+.about__valores p {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--about-muted);
+}
+
+/* Botones */
+.about__boton {
+  display: block;
+  padding: 12px 16px;
+  text-align: center;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--about-primary);
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.about__boton:hover {
+  background: var(--about-primary-dark);
+}
+.about__boton:focus-visible,
+.about__contacto-redes a:focus-visible {
+  outline: 3px solid var(--about-text);
+  outline-offset: 2px;
+}
+.about__boton--barra {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  border-radius: 5px;
+}
+
+/* Contacto */
+.about__contacto {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.about__contacto-redes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--about-card);
+  border-radius: 14px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+.about__contacto-redes a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 14px 6px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--about-text);
+  font-size: 0.7rem;
+}
+.about__contacto-redes a + a {
+  border-left: 1px solid #d6d6dc;
+}
+.about__contacto-redes svg {
+  width: 26px;
+  height: 26px;
+  margin-bottom: 4px;
+}
+.about__contacto-redes span {
+  color: var(--about-muted);
+}

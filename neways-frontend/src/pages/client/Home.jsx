@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import BottomNav from '../../components/common/BottomNav';
 import API from '../../services/api';
@@ -172,6 +172,14 @@ export default function Home() {
         <p className="text-xs font-mono text-gray-300 max-w-xs mx-auto leading-relaxed">
           "Involucrados en el estilo de vida deportivo, ofreciendo productos enfocados al bienestar y la alta calidad."
         </p>
+
+        <Link
+          to="/about"
+          className="inline-block mt-4 text-xs font-semibold text-indigo-300 underline underline-offset-4 hover:text-white transition"
+        >
+          Sobre nosotros
+        </Link>
+
         <p className="text-[10px] text-gray-400 mt-4">
           © 2026 Neways El Salvador. Todos los derechos reservados.
         </p>
