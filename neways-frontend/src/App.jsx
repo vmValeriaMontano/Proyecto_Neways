@@ -12,6 +12,9 @@ import CheckoutSuccess from './pages/client/CheckoutSuccess';
 import PaymentData from './pages/client/PaymentData';
 
 
+import AboutUs from './pages/client/AboutUs';
+
+
 
 import Favorites from './pages/client/Favorites';
 
@@ -48,6 +51,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/about" element={<AboutUs />} />
       <Route path="/catalog" element={<Catalog />} />
       <Route path="/favorites" element={<Favorites />} />
       {/* RUTA DE DETALLE DE PRODUCTO (Soporta ID dinámico y estático) */}
