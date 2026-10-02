@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "dev": "npm --prefix neways-frontend run dev",
+    "build": "npm --prefix neways-frontend run build"
+  },
   "devDependencies": {
     "autoprefixer": "^10.6.1",
     "postcss": "^8.5.28",
