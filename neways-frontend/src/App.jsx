@@ -8,6 +8,9 @@ import Catalog from './pages/client/Catalog';
 import ProductDetail from './pages/client/ProductDetail';
 import Cart from './pages/client/Cart';
 import ShippingData from './pages/client/ShippingData';
+import CheckoutSuccess from './pages/client/CheckoutSuccess';
+import PaymentData from './pages/client/PaymentData';
+
 
 
 import Favorites from './pages/client/Favorites';
@@ -52,7 +55,8 @@ function AppRoutes() {
       <Route path="/productDetail" element={<ProductDetail />} />
       <Route path="/cart" element={<Cart />} />
       <Route path="/shippingData" element={<ShippingData />} />
-
+      <Route path="/paymentData" element={<PaymentData />} />
+      <Route path="/checkoutSuccess" element={<CheckoutSuccess />} />
 
       <Route 
         path="/login" 
