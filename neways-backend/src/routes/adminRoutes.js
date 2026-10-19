@@ -19,6 +19,7 @@ router.put('/products/:id', adminController.updateProduct);
 router.delete('/products/:id', adminController.deleteProduct);
 
 // --- Variantes y Stock ---
+router.get('/products/:productId/variants', adminController.getProductVariantsAdmin);
 router.post('/variants', adminController.addVariant);
 router.put('/variants/:id/stock', adminController.updateVariantStock);
 router.delete('/variants/:id', adminController.deleteVariant);

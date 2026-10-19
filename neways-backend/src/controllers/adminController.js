@@ -70,24 +70,25 @@ async function deleteCategory(req, res) {
 }
 
 // ==========================================
-// 2. CRUD PRODUCTOS
+// 2. CRUD PRODUCTOS (Con soporte de Descuento)
 // ==========================================
 
 async function createProduct(req, res) {
   try {
-    const { name, description, price, category_id, image_url, is_active } = req.body;
+    const { name, description, price, category_id, image_url, discount, is_active } = req.body;
 
     if (!name || price === undefined || !category_id) {
       return res.status(400).json({ message: 'Nombre, precio y categoría son requeridos.' });
     }
 
     const activeState = is_active !== undefined ? is_active : true;
+    const productDiscount = discount ? Number(discount) : 0;
 
     const result = await pool.query(
-      `INSERT INTO products (name, description, price, category_id, image_url, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO products (name, description, price, category_id, image_url, discount, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [name, description || null, price, category_id, image_url || null, activeState]
+      [name, description || null, price, category_id, image_url || null, productDiscount, activeState]
     );
 
     res.status(201).json(result.rows[0]);
@@ -100,7 +101,7 @@ async function createProduct(req, res) {
 async function updateProduct(req, res) {
   try {
     const { id } = req.params;
-    const { name, description, price, category_id, image_url, is_active } = req.body;
+    const { name, description, price, category_id, image_url, discount, is_active } = req.body;
 
     const result = await pool.query(
       `UPDATE products 
@@ -109,10 +110,11 @@ async function updateProduct(req, res) {
            price = COALESCE($3, price),
            category_id = COALESCE($4, category_id),
            image_url = COALESCE($5, image_url),
-           is_active = COALESCE($6, is_active)
-       WHERE id = $7
+           discount = COALESCE($6, discount),
+           is_active = COALESCE($7, is_active)
+       WHERE id = $8
        RETURNING *`,
-      [name, description, price, category_id, image_url, is_active, id]
+      [name, description, price, category_id, image_url, discount, is_active, id]
     );
 
     if (result.rows.length === 0) {
@@ -148,6 +150,20 @@ async function deleteProduct(req, res) {
 // ==========================================
 // 3. CRUD VARIANTES (Tallas, Colores y Stock)
 // ==========================================
+
+async function getProductVariantsAdmin(req, res) {
+  try {
+    const { productId } = req.params;
+    const result = await pool.query(
+      'SELECT id, size, color, stock FROM product_variants WHERE product_id = $1 ORDER BY id ASC',
+      [productId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error al obtener variantes:', err);
+    res.status(500).json({ message: 'Error al obtener variantes.' });
+  }
+}
 
 async function addVariant(req, res) {
   try {
@@ -302,7 +318,7 @@ async function updateUserRole(req, res) {
 }
 
 // ==========================================
-// 6. GESTIÓN DE DEPARTAMENTOS Y MUNICIPIOS (CRUD ADMIN)
+// 6. GESTIÓN DE DEPARTAMENTOS Y MUNICIPIOS
 // ==========================================
 
 async function getAllDepartmentsAdmin(req, res) {
@@ -453,31 +469,25 @@ async function deleteMunicipality(req, res) {
 }
 
 module.exports = {
-  // Categorías
   getCategories,
   createCategory,
   updateCategory,
   deleteCategory,
-  // Productos
   createProduct,
   updateProduct,
   deleteProduct,
-  // Variantes
+  getProductVariantsAdmin,
   addVariant,
   updateVariantStock,
   deleteVariant,
-  // Pedidos
   getAllOrders,
   updateOrderStatus,
-  // Usuarios
   getAllUsers,
   updateUserRole,
-  // Departamentos
   getAllDepartmentsAdmin,
   createDepartment,
   updateDepartment,
   deleteDepartment,
-  // Municipios
   getMunicipalitiesAdmin,
   createMunicipality,
   updateMunicipality,
