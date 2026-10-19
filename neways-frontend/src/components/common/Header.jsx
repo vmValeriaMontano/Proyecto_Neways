@@ -9,7 +9,10 @@ export default function Header({ cartCount = 0 }) {
     <header className="bg-white sticky top-0 z-40 px-4 py- shadow-sm border-b border-gray-100 flex items-center justify-between">
       {/* Logo NEWAYS */}
       <Link to="/" className="flex items-center gap-2">
-        <img src="/logo-morado-completo.png" alt="NEWAYS" className="h-14 md:h-16 lg:h-20 object-contain transition-all duration-300" />
+        <img src="/isotipo-morado-copia.png" alt="NEWAYS" className="h-20 md:h-16 lg:h-24 object-contain transition-all duration-300" />
+      </Link>
+      <Link to="/" className="flex items-center gap-2">
+        <img src="/logo-morado-letra-copia.png" alt="NEWAYS" className="h-28 md:h-16 lg:h-32 object-contain transition-all duration-300" />
       </Link>
 
       {/* Iconos derechas: Búsqueda y Carrito */}
@@ -19,11 +22,11 @@ export default function Header({ cartCount = 0 }) {
           className="p-1 text-slate-800 hover:text-purple-600 transition"
           aria-label="Buscar"
         >
-          <Search size={22} />
+          <Search size={30} />
         </button>
 
         <Link to="/cart" className="relative p-1 text-slate-800 hover:text-purple-600 transition">
-          <ShoppingBag size={22} />
+          <ShoppingBag size={30} />
           {cartCount > 0 && (
             <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
               {cartCount}
