@@ -70,7 +70,7 @@ async function deleteCategory(req, res) {
 }
 
 // ==========================================
-// 2. CRUD PRODUCTOS (Con soporte de Descuento)
+// 2. CRUD PRODUCTOS (Con soporte de Descuento y limpieza de nulos)
 // ==========================================
 
 async function createProduct(req, res) {
@@ -82,13 +82,15 @@ async function createProduct(req, res) {
     }
 
     const activeState = is_active !== undefined ? is_active : true;
-    const productDiscount = discount ? Number(discount) : 0;
+    const productPrice = Number(price);
+    const productCategoryId = Number(category_id);
+    const productDiscount = discount !== '' && discount !== undefined ? Number(discount) : 0;
 
     const result = await pool.query(
       `INSERT INTO products (name, description, price, category_id, image_url, discount, is_active)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [name, description || null, price, category_id, image_url || null, productDiscount, activeState]
+      [name, description || null, productPrice, productCategoryId, image_url || null, productDiscount, activeState]
     );
 
     res.status(201).json(result.rows[0]);
@@ -103,6 +105,11 @@ async function updateProduct(req, res) {
     const { id } = req.params;
     const { name, description, price, category_id, image_url, discount, is_active } = req.body;
 
+    // Conversión segura para evitar strings vacíos en columnas numéricas de PostgreSQL
+    const parsedPrice = price !== '' && price !== undefined ? Number(price) : null;
+    const parsedCategoryId = category_id !== '' && category_id !== undefined ? Number(category_id) : null;
+    const parsedDiscount = discount !== '' && discount !== undefined ? Number(discount) : 0;
+
     const result = await pool.query(
       `UPDATE products 
        SET name = COALESCE($1, name),
@@ -114,7 +121,7 @@ async function updateProduct(req, res) {
            is_active = COALESCE($7, is_active)
        WHERE id = $8
        RETURNING *`,
-      [name, description, price, category_id, image_url, discount, is_active, id]
+      [name, description, parsedPrice, parsedCategoryId, image_url, parsedDiscount, is_active, id]
     );
 
     if (result.rows.length === 0) {
@@ -177,7 +184,7 @@ async function addVariant(req, res) {
       `INSERT INTO product_variants (product_id, size, color, stock)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [product_id, size, color, stock]
+      [Number(product_id), size, color, Number(stock)]
     );
 
     res.status(201).json(result.rows[0]);
@@ -196,12 +203,12 @@ async function updateVariantStock(req, res) {
     const { stock } = req.body;
 
     if (stock === undefined || stock < 0) {
-      return res.status(400).json({ message: 'Proporciones un stock válido (mayor o igual a 0).' });
+      return res.status(400).json({ message: 'Proporcione un stock válido (mayor o igual a 0).' });
     }
 
     const result = await pool.query(
       'UPDATE product_variants SET stock = $1 WHERE id = $2 RETURNING *',
-      [stock, id]
+      [Number(stock), id]
     );
 
     if (result.rows.length === 0) {
@@ -341,7 +348,7 @@ async function createDepartment(req, res) {
     const activeState = is_active !== undefined ? is_active : true;
     const result = await pool.query(
       'INSERT INTO departments (name, shipping_cost, is_active) VALUES ($1, $2, $3) RETURNING *',
-      [name, shipping_cost, activeState]
+      [name, Number(shipping_cost), activeState]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -357,6 +364,7 @@ async function updateDepartment(req, res) {
   try {
     const { id } = req.params;
     const { name, shipping_cost, is_active } = req.body;
+    const parsedShippingCost = shipping_cost !== '' && shipping_cost !== undefined ? Number(shipping_cost) : null;
 
     const result = await pool.query(
       `UPDATE departments 
@@ -365,7 +373,7 @@ async function updateDepartment(req, res) {
            is_active = COALESCE($3, is_active)
        WHERE id = $4
        RETURNING *`,
-      [name, shipping_cost, is_active, id]
+      [name, parsedShippingCost, is_active, id]
     );
 
     if (result.rows.length === 0) {
@@ -417,7 +425,7 @@ async function createMunicipality(req, res) {
     const activeState = is_active !== undefined ? is_active : true;
     const result = await pool.query(
       'INSERT INTO municipalities (department_id, name, is_active) VALUES ($1, $2, $3) RETURNING *',
-      [department_id, name, activeState]
+      [Number(department_id), name, activeState]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {

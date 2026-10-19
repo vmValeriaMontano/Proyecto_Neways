@@ -17,7 +17,7 @@ export default function AdminDashboard() {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Modal y Formulario Productos (Con campo descuento opcional)
+  // Modal y Formulario Productos (Con descuento)
   const [showProductModal, setShowProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [productForm, setProductForm] = useState({
@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   const [productVariants, setProductVariants] = useState([]);
   const [variantForm, setVariantForm] = useState({ size: 'M', color: 'Negro', stock: 10 });
 
-  // Modal y Formulario Ubicaciones (Departamentos / Costo de envío)
+  // Modal y Formulario Ubicaciones
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [departmentForm, setDepartmentForm] = useState({ name: '', shipping_cost: '' });
@@ -146,7 +146,6 @@ export default function AdminDashboard() {
         ...variantForm
       });
       setShowVariantModal(false);
-      // Recargar inventario si está abierto
       const res = await API.get(`/admin/products/${selectedProductId}/variants`);
       setProductVariants(res.data || []);
       alert('Variante y stock agregados exitosamente.');
@@ -338,7 +337,7 @@ export default function AdminDashboard() {
                           <td className="p-4 font-medium text-slate-600">{p.category_name || 'Sin Categoría'}</td>
                           <td className="p-4">
                             <span className="font-bold text-purple-600">${Number(p.price).toFixed(2)}</span>
-                            {p.discount > 0 && (
+                            {Number(p.discount) > 0 && (
                               <span className="ml-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
                                 -{p.discount}% Desc.
                               </span>
@@ -365,12 +364,12 @@ export default function AdminDashboard() {
                                 onClick={() => {
                                   setEditingProduct(p);
                                   setProductForm({
-                                    name: p.name,
-                                    description: p.description,
-                                    price: p.price,
-                                    category_id: p.category_id,
-                                    image_url: p.image_url,
-                                    discount: p.discount || ''
+                                    name: p.name || '',
+                                    description: p.description || '',
+                                    price: p.price || '',
+                                    category_id: p.category_id || '',
+                                    image_url: p.image_url || '',
+                                    discount: p.discount !== undefined && p.discount !== null ? p.discount : ''
                                   });
                                   setShowProductModal(true);
                                 }}
@@ -632,7 +631,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL PRODUCTO (Con Descuento Opcional) */}
+      {/* MODAL PRODUCTO (Con Descuento Opcional Corregido) */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
@@ -724,7 +723,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* MODAL VER / EDITAR INVENTARIO (STOCK & VARIANTES) */}
+      {/* MODAL VER INVENTARIO */}
       {showInventoryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl">

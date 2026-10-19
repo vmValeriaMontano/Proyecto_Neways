@@ -117,10 +117,13 @@ export default function ProductDetails() {
     product?.imageUrl ||
     (product?.images && product?.images[0]);
 
-  const priceFormatted =
-    typeof product?.price === "number"
-      ? `$${Number(product.price).toFixed(2)}`
-      : product?.price || "$0.00";
+  // Cálculos de Precios y Descuento
+  const basePrice = Number(product?.price || 0);
+  const discountPercent = Number(product?.discount || 0);
+  const hasDiscount = discountPercent > 0;
+  const finalPrice = hasDiscount
+    ? basePrice * (1 - discountPercent / 100)
+    : basePrice;
 
   return (
     <div className="min-h-screen bg-[#f3f3f3] pb-28 flex flex-col justify-between font-sans">
@@ -130,6 +133,12 @@ export default function ProductDetails() {
         <main className="px-10 pt-10">
           {/* Imagen Principal */}
           <div className="w-full h-64 md:h-[450px] bg-white rounded-3xl flex items-end p-6 relative overflow-hidden shadow-xl border border-gray-100">
+            {hasDiscount && (
+              <span className="absolute top-4 left-4 bg-red-500 text-white text-xs font-extrabold px-3 py-1 rounded-full z-20 shadow-md">
+                -{discountPercent}% OFF
+              </span>
+            )}
+
             {imageUrl ? (
               <img
                 src={imageUrl}
@@ -144,9 +153,16 @@ export default function ProductDetails() {
 
           {/* Indicador de Precio y Stock */}
           <div className="flex items-center justify-between mt-4 mb-4">
-            <span className="text-xl font-bold text-indigo-600">
-              {priceFormatted}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xl font-bold text-indigo-600">
+                ${finalPrice.toFixed(2)}
+              </span>
+              {hasDiscount && (
+                <span className="text-xs text-gray-400 line-through font-semibold">
+                  ${basePrice.toFixed(2)}
+                </span>
+              )}
+            </div>
 
             {/* Aviso Dinámico de Stock */}
             {isCombinationAvailable ? (
