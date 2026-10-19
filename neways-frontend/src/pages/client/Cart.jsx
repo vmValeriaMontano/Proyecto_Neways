@@ -26,7 +26,7 @@ export default function Cart() {
       console.info('Ruta /cart no detectada en backend. Usando almacenamiento local.');
       const localCart = JSON.parse(localStorage.getItem('user_cart') || '[]');
       setCartItems(localCart);
-    }{
+    } finally {
       setLoading(false);
     }
   };
@@ -85,11 +85,13 @@ export default function Cart() {
     }
   };
 
-  // Cálculos del Total
+  // Cálculos del Total tomando en cuenta el descuento del producto
   const subtotal = cartItems.reduce((acc, item) => {
-    const price = Number(item.price || item.product?.price || item.variant?.price || 0);
+    const basePrice = Number(item.price || item.product?.price || 0);
+    const discountPercent = Number(item.discount || item.product?.discount || 0);
+    const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent / 100) : basePrice;
     const qty = Number(item.quantity || 1);
-    return acc + price * qty;
+    return acc + finalPrice * qty;
   }, 0);
 
   const discountAmount = subtotal * discount;
@@ -135,18 +137,28 @@ export default function Cart() {
               <div className="flex flex-col gap-3">
                 {cartItems.map((item) => {
                   const itemId = item.id || item.cart_item_id || item.variant_id;
-                  const product = item.product || item;
-                  const name = product.name || item.name || 'Producto';
-                  const price = Number(item.price || product.price || 0);
-                  const imageUrl = item.image_url || product.image_url || product.image;
-                  const color = item.color || item.variant?.color;
-                  const size = item.size || item.variant?.size;
+                  const name = item.name || item.product?.name || 'Producto';
+                  
+                  const basePrice = Number(item.price || 0);
+                  const discountPercent = Number(item.discount || 0);
+                  const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent / 100) : basePrice;
+
+                  const imageUrl = item.image_url || item.product?.image_url;
+                  const color = item.color;
+                  const size = item.size;
 
                   return (
                     <div
                       key={itemId}
-                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex items-center justify-between gap-3"
+                      className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex items-center justify-between gap-3 relative overflow-hidden"
                     >
+                      {/* Badge de descuento en el carrito */}
+                      {discountPercent > 0 && (
+                        <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full z-10 shadow-sm">
+                          -{discountPercent}%
+                        </span>
+                      )}
+
                       {/* Imagen */}
                       <div className="w-16 h-16 bg-gray-100 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
                         {imageUrl ? (
@@ -169,9 +181,16 @@ export default function Cart() {
                           </p>
                         )}
 
-                        <span className="text-xs text-indigo-600 font-extrabold block mt-1">
-                          ${price.toFixed(2)}
-                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-indigo-600 font-extrabold">
+                            ${finalPrice.toFixed(2)}
+                          </span>
+                          {discountPercent > 0 && (
+                            <span className="text-[10px] text-gray-400 line-through">
+                              ${basePrice.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Controles de Cantidad y Eliminación */}
@@ -227,13 +246,13 @@ export default function Cart() {
               {/* Resumen de la Orden */}
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2 mt-2 text-xs">
                 <div className="flex justify-between text-gray-500">
-                  <span>Subtotal</span>
+                  <span>Subtotal con descuento</span>
                   <span className="font-semibold text-slate-700">${subtotal.toFixed(2)}</span>
                 </div>
 
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600">
-                    <span>Descuento ({discount * 100}%)</span>
+                    <span>Cupón ({discount * 100}%)</span>
                     <span className="font-semibold">-${discountAmount.toFixed(2)}</span>
                   </div>
                 )}

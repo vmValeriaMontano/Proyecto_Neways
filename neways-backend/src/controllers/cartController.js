@@ -4,7 +4,7 @@ async function getCart(req, res) {
   try {
     const result = await pool.query(
       `SELECT ci.id AS cart_item_id, ci.quantity, v.id AS variant_id, v.size, v.color, v.stock,
-              p.id AS product_id, p.name, p.price, p.image_url
+              p.id AS product_id, p.name, p.price, p.discount, p.image_url
        FROM cart_items ci
        JOIN product_variants v ON v.id = ci.variant_id
        JOIN products p ON p.id = v.product_id
@@ -21,7 +21,6 @@ async function getCart(req, res) {
 
 async function addToCart(req, res) {
   try {
-    // Soportar variantId o variant_id para prevenir descalces con el frontend
     const variantId = req.body.variantId || req.body.variant_id;
     const qty = parseInt(req.body.quantity, 10) || 1;
 
@@ -29,7 +28,6 @@ async function addToCart(req, res) {
       return res.status(400).json({ message: "El ID de la variante es requerido." });
     }
 
-    // 1. Verificar si la variante existe y cuál es su stock actual
     const variantCheck = await pool.query(
       "SELECT stock FROM product_variants WHERE id = $1", 
       [variantId]
@@ -41,7 +39,6 @@ async function addToCart(req, res) {
 
     const availableStock = variantCheck.rows[0].stock;
 
-    // 2. Verificar cuánto tiene ya el usuario guardado en su carrito de esta variante
     const existingCartItem = await pool.query(
       "SELECT quantity FROM cart_items WHERE user_id = $1 AND variant_id = $2",
       [req.user.id, variantId]
@@ -50,14 +47,12 @@ async function addToCart(req, res) {
     const currentCartQty = existingCartItem.rows.length > 0 ? existingCartItem.rows[0].quantity : 0;
     const totalDesiredQty = currentCartQty + qty;
 
-    // 3. Validar stock considerando lo que ya tiene en el carrito
     if (totalDesiredQty > availableStock) {
       return res.status(400).json({ 
         message: `No hay suficiente stock. Ya tienes ${currentCartQty} en el carrito y el stock disponible es de ${availableStock}.` 
       });
     }
 
-    // 4. Guardar o actualizar
     const result = await pool.query(
       `INSERT INTO cart_items (user_id, variant_id, quantity)
        VALUES ($1, $2, $3)
@@ -83,7 +78,6 @@ async function updateCartItem(req, res) {
       return removeCartItem(req, res);
     }
 
-    // 1. Obtener el variant_id del elemento del carrito
     const itemCheck = await pool.query(
       "SELECT variant_id FROM cart_items WHERE id = $1 AND user_id = $2",
       [id, req.user.id]
@@ -95,7 +89,6 @@ async function updateCartItem(req, res) {
 
     const variantId = itemCheck.rows[0].variant_id;
 
-    // 2. Verificar si el nuevo total excede el stock de la variante
     const variantCheck = await pool.query(
       "SELECT stock FROM product_variants WHERE id = $1",
       [variantId]
@@ -107,7 +100,6 @@ async function updateCartItem(req, res) {
       });
     }
 
-    // 3. Actualizar la cantidad
     const result = await pool.query(
       `UPDATE cart_items SET quantity = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
       [newQty, id, req.user.id]
