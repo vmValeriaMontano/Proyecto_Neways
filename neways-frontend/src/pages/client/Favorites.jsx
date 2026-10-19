@@ -85,9 +85,8 @@ export default function Favorites() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {favorites.map((item) => {
-                // Soporte si el objeto viene plano o anidado desde SQL JOIN (e.g. item.product_id vs item.id)
                 const product = item.product || item;
                 const productId = item.product_id || product.id || product._id;
                 
@@ -101,12 +100,12 @@ export default function Favorites() {
                   <div
                     key={productId}
                     onClick={() => handleProductClick(productId)}
-                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative hover:shadow-md transition active:scale-[0.98]"
+                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative"
                   >
-                    {/* Botón para remover de Favoritos */}
+                    {/* Botón Favoritos (Corazón interactivo rojo igual al catálogo) */}
                     <button
                       onClick={(e) => handleRemoveFavorite(e, productId)}
-                      className="absolute top-2 right-2 bg-white/80 backdrop-blur-sm rounded-full w-7 h-7 flex items-center justify-center text-2xl text-red-500 hover:text-red-600 shadow-sm z-10 transition"
+                      className="absolute top-3 right-3 text-3xl z-10 transition-transform active:scale-125 text-red-500 hover:text-red-600"
                       title="Quitar de Favoritos"
                     >
                       ♥
