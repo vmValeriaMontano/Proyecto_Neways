@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom"; // Importamos Link para la navegación real de rutas
+import { Link } from "react-router-dom";
+// Ajusta esta ruta si tu Nav está en otra carpeta (ej: "../components/Nav")
+import Nav from "../components/Nav"; 
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
@@ -9,6 +11,7 @@ const Login = ({ onLoginSuccess }) => {
   });
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -17,6 +20,7 @@ const Login = ({ onLoginSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     const endpoint = "http://localhost:5000/api/auth/login";
 
@@ -27,7 +31,6 @@ const Login = ({ onLoginSuccess }) => {
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user || {}));
 
-        // Ejecuta la redirección instantánea configurada en App.jsx
         if (onLoginSuccess) onLoginSuccess();
       }
     } catch (err) {
@@ -35,16 +38,22 @@ const Login = ({ onLoginSuccess }) => {
         err.response?.data?.message ||
           "Ocurrió un error. Verifica tus credenciales.",
       );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-between bg-[#ececec] py-8 px-4 font-sans text-gray-800">
+    <div className="min-h-screen flex flex-col justify-between bg-[#ececec] font-sans text-gray-800">
+      {/* Barra de navegación superior limpia sin lupa ni carrito */}
+      <Nav />
+
       {/* Contenedor principal centrado */}
-      <div className="w-full max-w-sm flex flex-col items-center my-auto space-y-6">
-        {/* Ícono de usuario e ícono del perfil */}
+      <div className="w-full max-w-sm mx-auto flex flex-col items-center my-auto space-y-6 px-4">
+        
+        {/* Ícono de usuario / perfil */}
         <div className="flex flex-col items-center space-y-2">
-          <div className="w-24 h-24 rounded-full border-[3px] border-black flex items-center justify-center p-2">
+          <div className="w-24 h-24 rounded-full border-[3px] border-black flex items-center justify-center p-2 bg-white shadow-sm">
             <svg
               className="w-full h-full text-black"
               fill="none"
@@ -130,7 +139,7 @@ const Login = ({ onLoginSuccess }) => {
             </div>
           </div>
 
-          {/* Enlace directo a tu componente Register.jsx cambiando la URL real */}
+          {/* Enlace de Registro */}
           <div className="text-center pt-2">
             <Link
               to="/register"
@@ -144,17 +153,18 @@ const Login = ({ onLoginSuccess }) => {
           <div className="flex justify-center">
             <button
               type="submit"
-              className="w-48 py-2.5 bg-[#6b73ff] hover:bg-[#5860f0] text-white font-semibold rounded-xl shadow-md transition duration-200"
+              disabled={loading}
+              className="w-48 py-2.5 bg-[#6b73ff] hover:bg-[#5860f0] text-white font-semibold rounded-xl shadow-md transition duration-200 disabled:opacity-50"
             >
-              Login
+              {loading ? "Entrando..." : "Login"}
             </button>
           </div>
         </form>
       </div>
 
       {/* Logo de Neways en el pie de página */}
-      <div className="mt-8 flex flex-col items-center">
-        <img src="/logo-morado-completo.png" alt="Neways Logo" className="h-40" />
+      <div className="mt-8 mb-6 flex flex-col items-center">
+        <img src="/logo-morado-completo.png" alt="Neways Logo" className="h-32 object-contain" />
       </div>
     </div>
   );

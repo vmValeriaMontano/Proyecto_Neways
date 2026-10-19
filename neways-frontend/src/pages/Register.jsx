@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API from '../services/api';
 import { User, Mail, Phone, Lock } from 'lucide-react';
+import Nav from '../components/Nav';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -62,14 +63,12 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-[#EFEFEF] flex flex-col items-center justify-between p-6">
+    <div className="min-h-screen bg-[#EFEFEF] flex flex-col justify-between font-sans">
       
-      {/* TÍTULO SUPERIOR */}
-      <div className="w-full max-w-sm text-left">
-        <span className="text-gray-400 font-medium text-lg">Registro</span>
-      </div>
+      {/* Nav superior que creaste */}
+      <Nav />
 
-      <div className="w-full max-w-sm flex flex-col items-center my-auto">
+      <div className="w-full max-w-sm mx-auto flex flex-col items-center my-auto p-6">
         
         {/* AVATAR Y BIENVENIDA */}
         <div className="flex flex-col items-center mb-6">
@@ -181,8 +180,8 @@ export default function Register() {
       </div>
 
       {/* LOGO INFERIOR */}
-      <div className="mb-2">
-        <img src="/logo-morado-completo.png" alt="Neways Logo" className="h-40" />
+      <div className="mb-2 flex flex-col items-center">
+        <img src="/logo-morado-completo.png" alt="Neways Logo" className="h-40 object-contain" />
       </div>
 
     </div>
