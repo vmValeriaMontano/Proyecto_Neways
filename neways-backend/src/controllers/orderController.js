@@ -4,10 +4,33 @@ const { processPayment } = require('../services/paymentService');
 async function createOrder(req, res) {
   const client = await pool.connect();
   try {
-    const { fullName, phone, department, municipality, address, addressReference, card } = req.body;
+    const {
+      fullName,
+      phone,
+      department,
+      municipality,
+      address,
+      houseNumber,
+      addressReference,
+      latitude,
+      longitude,
+      card,
+    } = req.body;
 
     if (!fullName || !phone || !department || !municipality || !address) {
       return res.status(400).json({ message: "Todos los campos de envío son obligatorios." });
+    }
+
+    const hasCoordinates = latitude != null || longitude != null;
+    if (hasCoordinates && (
+      !Number.isFinite(latitude)
+      || !Number.isFinite(longitude)
+      || latitude < -90
+      || latitude > 90
+      || longitude < -180
+      || longitude > 180
+    )) {
+      return res.status(400).json({ message: "Las coordenadas de envío no son válidas." });
     }
 
     await client.query("BEGIN");
@@ -58,8 +81,8 @@ async function createOrder(req, res) {
     // Crear orden
     const orderResult = await client.query(
       `INSERT INTO orders 
-       (user_id, full_name, phone, department, municipality, address, address_reference, subtotal, shipping, total, payment_status, order_status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pagado', 'recibido')
+       (user_id, full_name, phone, department, municipality, address, address_reference, house_number, latitude, longitude, subtotal, shipping, total, payment_status, order_status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pagado', 'recibido')
        RETURNING id, created_at`,
       [
         req.user.id,
@@ -69,6 +92,9 @@ async function createOrder(req, res) {
         municipality,
         address,
         addressReference || null,
+        houseNumber || null,
+        hasCoordinates ? latitude : null,
+        hasCoordinates ? longitude : null,
         subtotal.toFixed(2),
         shippingCost.toFixed(2),
         total.toFixed(2)

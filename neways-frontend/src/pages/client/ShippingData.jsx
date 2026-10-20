@@ -1,19 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import BottomNav from '../../components/common/BottomNav';
 import CheckoutSteps from '../../components/common/CheckoutSteps';
 import API from '../../services/api';
 
+const ShippingMap = lazy(() => import('../../components/common/ShippingMap'));
+
+const hasSavedCoordinates = (data) => (
+  Number.isFinite(data.latitude) && Number.isFinite(data.longitude)
+);
+
+const normalizeLocationName = (value) => String(value || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/\b(departamento|department|province|provincia)\b/g, '')
+  .replace(/[^a-z0-9]+/g, ' ')
+  .trim();
+
+const findLocationMatch = (locations, names) => {
+  const normalizedNames = names.map(normalizeLocationName).filter(Boolean);
+  const exactMatch = locations.find((location) => (
+    normalizedNames.includes(normalizeLocationName(location.name))
+  ));
+
+  if (exactMatch) return exactMatch;
+
+  const partialMatches = locations.filter((location) => {
+    const locationName = normalizeLocationName(location.name);
+    return normalizedNames.some((name) => (
+      name.startsWith(`${locationName} `) || locationName.startsWith(`${name} `)
+    ));
+  });
+
+  return partialMatches.length === 1 ? partialMatches[0] : null;
+};
+
 export default function ShippingData() {
   const navigate = useNavigate();
 
   // Cargar datos previos si existen
   const savedData = JSON.parse(localStorage.getItem('checkout_shipping') || '{}');
+  const savedCoordinates = hasSavedCoordinates(savedData);
 
   const [departments, setDepartments] = useState([]);
   const [municipalities, setMunicipalities] = useState([]);
   const [selectedDeptObj, setSelectedDeptObj] = useState(null);
+  const [addressSearch, setAddressSearch] = useState(savedData.address || '');
+  const [addressSearchVersion, setAddressSearchVersion] = useState(savedCoordinates ? -1 : 0);
+  const [mapMessage, setMapMessage] = useState('Escribe una dirección o mueve el marcador para elegir el punto de entrega.');
+  const reverseGeocodeTimer = useRef(null);
+  const reverseGeocodeController = useRef(null);
+  const savedDepartment = savedData.department || '';
 
   const [formData, setFormData] = useState({
     fullName: savedData.fullName || '',
@@ -21,11 +60,24 @@ export default function ShippingData() {
     department: savedData.department || '',
     municipality: savedData.municipality || '',
     address: savedData.address || '',
+    houseNumber: savedData.houseNumber || '',
     reference: savedData.reference || '',
     shippingCost: savedData.shippingCost || 0,
+    latitude: savedCoordinates ? savedData.latitude : null,
+    longitude: savedCoordinates ? savedData.longitude : null,
   });
 
   const [loading, setLoading] = useState(false);
+
+  const fetchMunicipalities = useCallback(async (departmentId) => {
+    try {
+      const res = await API.get(`/locations/departments/${departmentId}/municipalities`);
+      return res.data || [];
+    } catch (err) {
+      console.error('Error al obtener municipios:', err);
+      return null;
+    }
+  }, []);
 
   // Cargar lista de departamentos al montar
   useEffect(() => {
@@ -35,11 +87,12 @@ export default function ShippingData() {
         setDepartments(res.data || []);
 
         // Si había un departamento previamente guardado, cargar sus municipios
-        if (savedData.department) {
-          const match = res.data.find((d) => d.name === savedData.department);
+        if (savedDepartment) {
+          const match = res.data.find((d) => d.name === savedDepartment);
           if (match) {
             setSelectedDeptObj(match);
-            fetchMunicipalities(match.id);
+            const savedMunicipalities = await fetchMunicipalities(match.id);
+            if (savedMunicipalities) setMunicipalities(savedMunicipalities);
           }
         }
       } catch (err) {
@@ -47,19 +100,69 @@ export default function ShippingData() {
       }
     };
     fetchDepartments();
+  }, [fetchMunicipalities, savedDepartment]);
+
+  useEffect(() => () => {
+    clearTimeout(reverseGeocodeTimer.current);
+    reverseGeocodeController.current?.abort();
   }, []);
 
-  const fetchMunicipalities = async (departmentId) => {
-    try {
-      const res = await API.get(`/locations/departments/${departmentId}/municipalities`);
-      setMunicipalities(res.data || []);
-    } catch (err) {
-      console.error('Error al obtener municipios:', err);
-    }
-  };
+  useEffect(() => {
+    if (addressSearchVersion < 0 || addressSearch.trim().length < 4) return undefined;
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      const query = [addressSearch, formData.municipality, formData.department]
+        .filter(Boolean)
+        .join(', ');
+      const params = new URLSearchParams({ format: 'jsonv2', limit: '1', q: query });
+
+      try {
+        setMapMessage('Buscando la dirección en el mapa...');
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) throw new Error(`Geocodificación fallida (${response.status}).`);
+
+        const [result] = await response.json();
+        if (!result) {
+          setMapMessage('No encontramos esa dirección. Puedes elegir el punto directamente en el mapa.');
+          return;
+        }
+
+        setFormData((prev) => ({
+          ...prev,
+          latitude: Number(result.lat),
+          longitude: Number(result.lon),
+        }));
+        setMapMessage('Ubicación encontrada. Puedes ajustar el punto moviendo el marcador.');
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error buscando la dirección en el mapa:', error);
+          setMapMessage('No fue posible buscar la dirección. Puedes elegir el punto directamente en el mapa.');
+        }
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [
+    addressSearch,
+    addressSearchVersion,
+    formData.department,
+    formData.municipality,
+  ]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'department' || name === 'municipality' || name === 'address') {
+      clearTimeout(reverseGeocodeTimer.current);
+      reverseGeocodeController.current?.abort();
+    }
 
     if (name === 'department') {
       const deptObj = departments.find((d) => d.name === value);
@@ -70,16 +173,146 @@ export default function ShippingData() {
         department: value,
         municipality: '', // Reiniciar municipio si cambia el departamento
         shippingCost: deptObj ? Number(deptObj.shipping_cost) : 0,
+        latitude: null,
+        longitude: null,
       }));
+      setAddressSearchVersion((version) => (version < 0 ? 0 : version + 1));
 
       if (deptObj) {
-        fetchMunicipalities(deptObj.id);
+        fetchMunicipalities(deptObj.id).then((result) => {
+          if (result) setMunicipalities(result);
+        });
       } else {
         setMunicipalities([]);
       }
     } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        ...(name === 'address' || name === 'municipality'
+          ? { latitude: null, longitude: null }
+          : {}),
+      }));
+      if (name === 'address') {
+        setAddressSearch(value);
+        setAddressSearchVersion((version) => version + 1);
+      } else if (name === 'municipality') {
+        setAddressSearchVersion((version) => (version < 0 ? 0 : version + 1));
+      }
     }
+  };
+
+  const handleMapLocationSelect = ({ lat, lng }) => {
+    setFormData((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+    setAddressSearchVersion(-1);
+    setMapMessage('Consultando la dirección del punto seleccionado...');
+
+    clearTimeout(reverseGeocodeTimer.current);
+    reverseGeocodeController.current?.abort();
+    const controller = new AbortController();
+    reverseGeocodeController.current = controller;
+
+    reverseGeocodeTimer.current = setTimeout(async () => {
+      const params = new URLSearchParams({
+        format: 'jsonv2',
+        lat: String(lat),
+        lon: String(lng),
+        zoom: '18',
+        addressdetails: '1',
+      });
+
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
+          signal: controller.signal,
+        });
+
+        if (!response.ok) throw new Error(`Geocodificación inversa fallida (${response.status}).`);
+
+        const result = await response.json();
+        if (!result.display_name) {
+          setMapMessage('No encontramos una dirección para este punto; puedes escribirla manualmente.');
+          return;
+        }
+        if (controller.signal.aborted) return;
+
+        const parts = result.address || {};
+        const address = [
+          [parts.house_number, parts.road].filter(Boolean).join(' '),
+          parts.neighbourhood || parts.suburb,
+          parts.city || parts.town || parts.village,
+        ].filter(Boolean).join(', ') || result.display_name;
+        setAddressSearch(address);
+
+        const departmentNames = [
+          parts.state,
+          parts.state_district,
+          parts.province,
+          parts.region,
+          parts.county,
+        ];
+        const municipalityNames = [
+          parts.city,
+          parts.town,
+          parts.village,
+          parts.municipality,
+          parts.city_district,
+          parts.suburb,
+          parts.district,
+          parts.borough,
+          parts.county,
+        ];
+        const department = findLocationMatch(departments, departmentNames);
+
+        if (!department) {
+          setSelectedDeptObj(null);
+          setMunicipalities([]);
+          setFormData((prev) => ({
+            ...prev,
+            address,
+            department: '',
+            municipality: '',
+            shippingCost: 0,
+          }));
+          setMapMessage('Dirección actualizada; selecciona el departamento y municipio manualmente.');
+          return;
+        }
+
+        const departmentMunicipalities = await fetchMunicipalities(department.id);
+        if (controller.signal.aborted) return;
+        if (!departmentMunicipalities) {
+          setSelectedDeptObj(department);
+          setMunicipalities([]);
+          setFormData((prev) => ({
+            ...prev,
+            address,
+            department: department.name,
+            municipality: '',
+            shippingCost: Number(department.shipping_cost),
+          }));
+          setMapMessage('Departamento actualizado; no se pudieron cargar los municipios. Selecciónalo manualmente.');
+          return;
+        }
+
+        const municipality = findLocationMatch(departmentMunicipalities, municipalityNames);
+        setSelectedDeptObj(department);
+        setMunicipalities(departmentMunicipalities);
+        setFormData((prev) => ({
+          ...prev,
+          address,
+          department: department.name,
+          municipality: municipality?.name || '',
+          shippingCost: Number(department.shipping_cost),
+        }));
+        setMapMessage(municipality
+          ? 'Dirección, departamento y municipio actualizados desde el punto seleccionado.'
+          : 'Dirección y departamento actualizados; selecciona el municipio manualmente.');
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error obteniendo la dirección del punto:', error);
+          setMapMessage('No fue posible obtener la dirección del punto. Puedes escribirla manualmente.');
+        }
+      }
+    }, 1000);
   };
 
   const handleSubmit = async (e) => {
@@ -223,6 +456,39 @@ export default function ShippingData() {
                 </span>
               </div>
             </div>
+
+            <div className="bg-white rounded-2xl p-3 flex items-center gap-3 border border-gray-100 shadow-xs focus-within:ring-2 focus-within:ring-indigo-400">
+              <span className="text-gray-700 text-lg pl-1" aria-hidden="true">🏢</span>
+              <div className="flex-1">
+                <label htmlFor="houseNumber" className="sr-only">Número de casa o apartamento</label>
+                <input
+                  id="houseNumber"
+                  type="text"
+                  name="houseNumber"
+                  placeholder="Número de casa o apartamento"
+                  value={formData.houseNumber}
+                  onChange={handleChange}
+                  className="w-full text-xs font-medium text-slate-800 placeholder-gray-500 outline-none bg-transparent"
+                />
+              </div>
+            </div>
+
+            <section className="bg-white rounded-2xl p-3 border border-gray-100 shadow-xs">
+              <h2 className="text-xs font-semibold text-slate-800 mb-1">Ubica tu dirección en el mapa</h2>
+              <p className="text-[10px] text-gray-500 mb-2">
+                La ubicación se moverá al escribir una dirección. También puedes arrastrar el marcador.
+              </p>
+              <Suspense fallback={<div className="h-56 w-full rounded-xl bg-slate-100" />}>
+                <ShippingMap
+                  latitude={formData.latitude}
+                  longitude={formData.longitude}
+                  onLocationSelect={handleMapLocationSelect}
+                />
+              </Suspense>
+              <p className="text-[10px] text-gray-500 mt-2" role="status" aria-live="polite">
+                {mapMessage}
+              </p>
+            </section>
 
             {/* Referencia de Dirección */}
             <div className="bg-white rounded-2xl p-3 flex items-start gap-3 border border-gray-100 shadow-xs focus-within:ring-2 focus-within:ring-indigo-400">

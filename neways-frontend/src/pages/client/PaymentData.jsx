@@ -103,7 +103,10 @@ export default function PaymentData() {
         department: shipping.department,
         municipality: shipping.municipality,
         address: shipping.address,
+        houseNumber: shipping.houseNumber || null,
         addressReference: shipping.reference || shipping.addressReference || null,
+        latitude: shipping.latitude,
+        longitude: shipping.longitude,
         card: {
           cardNumber: form.cardNumber,
           cardName: form.cardName,
@@ -157,6 +160,11 @@ export default function PaymentData() {
                   {shipping?.department || 'Sin departamento'} • {shipping?.municipality || 'Sin municipio'}
                 </div>
                 <div className="mt-1 text-[11px] text-gray-500">{shipping?.address || 'Sin dirección'}</div>
+                {shipping?.houseNumber && (
+                  <div className="mt-1 text-[11px] text-gray-500">
+                    Casa/apartamento: {shipping.houseNumber}
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl bg-gray-100 p-3 text-left">

@@ -5,6 +5,19 @@ import {
   Package, Tag, Layers, ShoppingBag, Users, MapPin, LogOut, Plus, Edit2, Trash2, RefreshCw, Eye 
 } from 'lucide-react';
 
+const hasOrderCoordinates = (order) => (
+  order.latitude !== null
+  && order.latitude !== undefined
+  && order.longitude !== null
+  && order.longitude !== undefined
+  && Number.isFinite(Number(order.latitude))
+  && Number.isFinite(Number(order.longitude))
+);
+
+const getOrderMapUrl = (order) => (
+  `https://www.openstreetmap.org/?mlat=${encodeURIComponent(order.latitude)}&mlon=${encodeURIComponent(order.longitude)}#map=18/${encodeURIComponent(order.latitude)}/${encodeURIComponent(order.longitude)}`
+);
+
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('products');
@@ -13,6 +26,7 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [expandedOrderId, setExpandedOrderId] = useState(null);
   const [usersList, setUsersList] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -494,39 +508,122 @@ export default function AdminDashboard() {
             {activeTab === 'orders' && (
               <div>
                 <h2 className="text-2xl font-bold text-slate-800 mb-6">Órdenes Realizadas</h2>
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  <table className="w-full text-left border-collapse">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
+                  <table className="w-full min-w-[760px] text-left border-collapse">
                     <thead className="bg-slate-50 border-b text-xs uppercase font-semibold text-gray-500">
                       <tr>
                         <th className="p-4">Orden ID</th>
                         <th className="p-4">Cliente</th>
+                        <th className="p-4">Entrega</th>
                         <th className="p-4">Total</th>
                         <th className="p-4">Estado del Pedido</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 text-sm">
                       {orders.map((o) => (
-                        <tr key={o.id} className="hover:bg-slate-50">
-                          <td className="p-4 font-bold">#ORD-{o.id}</td>
-                          <td className="p-4">
-                            <div className="font-medium text-slate-800">{o.full_name}</div>
-                            <div className="text-xs text-gray-500">{o.phone} | {o.department}</div>
-                          </td>
-                          <td className="p-4 font-bold text-purple-600">${Number(o.total).toFixed(2)}</td>
-                          <td className="p-4">
-                            <select
-                              value={o.order_status}
-                              onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
-                              className="bg-slate-100 border border-slate-300 rounded-lg px-3 py-1 text-xs font-semibold text-slate-700 focus:outline-none focus:border-purple-600"
-                            >
-                              <option value="recibido">Recibido</option>
-                              <option value="preparando">Preparando</option>
-                              <option value="enviado">Enviado</option>
-                              <option value="entregado">Entregado</option>
-                              <option value="cancelado">Cancelado</option>
-                            </select>
-                          </td>
-                        </tr>
+                        <React.Fragment key={o.id}>
+                          <tr className="hover:bg-slate-50">
+                            <td className="p-4 font-bold">#ORD-{o.id}</td>
+                            <td className="p-4">
+                              <div className="font-medium text-slate-800">{o.full_name || 'Sin nombre'}</div>
+                              <div className="text-xs text-gray-500">{o.phone || 'Sin teléfono'}</div>
+                              <div className="text-xs text-gray-500">{o.user_email || 'Sin correo'}</div>
+                            </td>
+                            <td className="p-4">
+                              <div className="font-medium text-slate-800">
+                                {[o.municipality, o.department].filter(Boolean).join(', ') || 'Sin ubicación'}
+                              </div>
+                              <div className="text-xs text-gray-500">{o.address || 'Sin dirección'}</div>
+                              {hasOrderCoordinates(o) ? (
+                                <a
+                                  className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:text-purple-900"
+                                  href={getOrderMapUrl(o)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  <MapPin size={14} />
+                                  Abrir punto exacto en el mapa
+                                </a>
+                              ) : (
+                                <div className="mt-1 text-xs text-gray-400">
+                                  Ubicación exacta no guardada
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setExpandedOrderId(
+                                  expandedOrderId === o.id ? null : o.id
+                                )}
+                                className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:text-purple-900"
+                                aria-expanded={expandedOrderId === o.id}
+                              >
+                                <Eye size={14} />
+                                {expandedOrderId === o.id ? 'Ocultar detalles' : 'Ver detalles de entrega'}
+                              </button>
+                            </td>
+                            <td className="p-4 font-bold text-purple-600">${Number(o.total).toFixed(2)}</td>
+                            <td className="p-4">
+                              <select
+                                value={o.order_status}
+                                onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                                className="bg-slate-100 border border-slate-300 rounded-lg px-3 py-1 text-xs font-semibold text-slate-700 focus:outline-none focus:border-purple-600"
+                              >
+                                <option value="recibido">Recibido</option>
+                                <option value="preparando">Preparando</option>
+                                <option value="enviado">Enviado</option>
+                                <option value="entregado">Entregado</option>
+                                <option value="cancelado">Cancelado</option>
+                              </select>
+                            </td>
+                          </tr>
+                          {expandedOrderId === o.id && (
+                            <tr key={`${o.id}-details`} className="bg-purple-50/60">
+                              <td colSpan="5" className="px-6 py-5">
+                                <div className="grid gap-4 text-sm md:grid-cols-2">
+                                  <div>
+                                    <h3 className="font-bold text-slate-800">Contacto del cliente</h3>
+                                    <p className="mt-2 text-slate-700">{o.full_name || 'Sin nombre'}</p>
+                                    <p className="text-slate-600">
+                                      Teléfono: {o.phone
+                                        ? <a className="text-purple-700 underline" href={`tel:${o.phone}`}>{o.phone}</a>
+                                        : 'No proporcionado'}
+                                    </p>
+                                    <p className="text-slate-600">
+                                      Correo: {o.user_email
+                                        ? <a className="text-purple-700 underline" href={`mailto:${o.user_email}`}>{o.user_email}</a>
+                                        : 'No disponible'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <h3 className="font-bold text-slate-800">Dirección de entrega</h3>
+                                    <p className="mt-2 text-slate-700">
+                                      {[o.address, o.house_number && `Casa/apartamento ${o.house_number}`]
+                                        .filter(Boolean).join(', ') || 'Sin dirección'}
+                                    </p>
+                                    <p className="text-slate-600">
+                                      {[o.municipality, o.department].filter(Boolean).join(', ') || 'Sin municipio o departamento'}
+                                    </p>
+                                    <p className="text-slate-600">
+                                      Referencia: {o.address_reference || 'No proporcionada'}
+                                    </p>
+                                    {hasOrderCoordinates(o) && (
+                                      <p className="mt-2 text-xs text-slate-500">
+                                        Coordenadas: {o.latitude}, {o.longitude}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-slate-600">
+                                    <h3 className="font-bold text-slate-800">Resumen del pedido</h3>
+                                    <p className="mt-2">Fecha: {o.created_at ? new Date(o.created_at).toLocaleString() : 'No disponible'}</p>
+                                    <p>Subtotal: ${Number(o.subtotal || 0).toFixed(2)}</p>
+                                    <p>Envío: ${Number(o.shipping || 0).toFixed(2)}</p>
+                                    <p>Pago: {o.payment_status || 'No disponible'}</p>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>
