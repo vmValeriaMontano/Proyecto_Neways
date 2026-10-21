@@ -94,6 +94,7 @@ export default function ProductDetails() {
       };
 
       await API.post("/cart", payload);
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
       alert("¡Producto agregado al carrito con éxito!");
     } catch (error) {
       console.error("Error al agregar al carrito:", error);
@@ -128,7 +129,7 @@ export default function ProductDetails() {
   return (
     <div className="min-h-screen bg-[#f3f3f3] pb-28 flex flex-col justify-between font-sans">
       <div>
-        <Header cartCount={3} />
+        <Header />
 
         <main className="px-10 pt-10">
           {/* Imagen Principal */}

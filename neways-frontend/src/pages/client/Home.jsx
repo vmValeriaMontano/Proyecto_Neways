@@ -58,7 +58,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 pb-28 flex flex-col justify-between">
       <div>
-        <Header cartCount={3} />
+        <Header />
 
         {/* Hero Banner */}
         <section className="bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 text-white p-6 rounded-b-xl shadow-md text-left">

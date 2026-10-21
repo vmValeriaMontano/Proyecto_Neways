@@ -56,7 +56,7 @@ export default function Favorites() {
   return (
     <div className="min-h-screen bg-slate-100 pb-28 flex flex-col justify-between">
       <div>
-        <Header cartCount={3} />
+        <Header />
 
         <main className="px-4 pt-4">
           <div className="flex items-center justify-between mb-4">

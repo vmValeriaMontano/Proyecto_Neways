@@ -122,7 +122,7 @@ export default function Catalog() {
     <div className="min-h-screen bg-slate-100 pb-28 flex flex-col justify-between font-sans">
       <div>
         {/* Reutilización del Header global */}
-        <Header cartCount={3} />
+        <Header />
 
         <main className="px-4 pt-3">
           {/* Barra de búsqueda */}

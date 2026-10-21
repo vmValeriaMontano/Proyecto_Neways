@@ -620,6 +620,51 @@ export default function AdminDashboard() {
                                     <p>Pago: {o.payment_status || 'No disponible'}</p>
                                   </div>
                                 </div>
+                                <div className="mt-5 border-t border-purple-100 pt-4">
+                                  <h3 className="font-bold text-slate-800">Productos del pedido</h3>
+                                  {Array.isArray(o.items) && o.items.length > 0 ? (
+                                    <div className="mt-3 divide-y divide-purple-100 rounded-lg border border-purple-100 bg-white">
+                                      {o.items.map((item, index) => (
+                                        <div
+                                          key={`${o.id}-${index}`}
+                                          className="flex flex-wrap items-center justify-between gap-3 p-3"
+                                        >
+                                          <div className="flex min-w-0 items-center gap-3">
+                                            <img
+                                              src={item.image_url || '/placeholder-product.jpeg'}
+                                              alt={item.product_name || 'Producto'}
+                                              onError={(e) => {
+                                                e.currentTarget.onerror = null;
+                                                e.currentTarget.src = '/placeholder-product.jpeg';
+                                              }}
+                                              className="h-14 w-14 shrink-0 rounded-md border border-slate-200 bg-slate-50 object-cover"
+                                            />
+                                            <div className="min-w-0">
+                                              <p className="font-semibold text-slate-800">
+                                                {item.product_name || 'Producto no disponible'}
+                                              </p>
+                                              <p className="mt-1 text-xs text-slate-600">
+                                                Talla: {item.size || 'No disponible'}
+                                                <span className="mx-2">|</span>
+                                                Color: {item.color || 'No disponible'}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="text-right text-sm text-slate-700">
+                                            <p>Cantidad: {item.quantity}</p>
+                                            <p className="text-xs text-slate-500">
+                                              ${Number(item.unit_price || 0).toFixed(2)} c/u
+                                            </p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="mt-2 text-sm text-slate-500">
+                                      Este pedido no tiene productos disponibles para mostrar.
+                                    </p>
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           )}

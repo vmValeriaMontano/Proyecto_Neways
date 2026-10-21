@@ -106,7 +106,7 @@ const contactos = [
 export default function AboutUs() {
   return (
     <div className="min-h-screen bg-neutral-100 pb-28">
-      <Header cartCount={3} />
+      <Header />
 
       <main className="w-full max-w-5xl mx-auto px-4 md:px-8 mt-3 md:mt-6 flex flex-col gap-4 md:gap-6">
         {/* Banner: morado con corte diagonal + gris con logo */}

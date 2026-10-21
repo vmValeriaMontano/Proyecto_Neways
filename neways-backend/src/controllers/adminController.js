@@ -245,7 +245,21 @@ async function deleteVariant(req, res) {
 async function getAllOrders(req, res) {
   try {
     const result = await pool.query(
-      `SELECT o.*, u.email AS user_email
+      `SELECT o.*, u.email AS user_email,
+              COALESCE((
+                SELECT json_agg(json_build_object(
+                  'product_name', p.name,
+                  'image_url', p.image_url,
+                  'size', pv.size,
+                  'color', pv.color,
+                  'quantity', oi.quantity,
+                  'unit_price', oi.unit_price
+                ))
+                FROM order_items oi
+                LEFT JOIN product_variants pv ON pv.id = oi.variant_id
+                LEFT JOIN products p ON p.id = pv.product_id
+                WHERE oi.order_id = o.id
+              ), '[]'::json) AS items
        FROM orders o
        LEFT JOIN users u ON o.user_id = u.id
        ORDER BY o.created_at DESC`

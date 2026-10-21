@@ -47,6 +47,9 @@ export default function Cart() {
 
     setCartItems(updatedCart);
     localStorage.setItem('user_cart', JSON.stringify(updatedCart));
+    window.dispatchEvent(new CustomEvent('cartUpdated', {
+      detail: { cartCount: updatedCart.reduce((total, item) => total + (Number(item.quantity) || 1), 0) }
+    }));
 
     // Intentar sync con Backend
     try {
@@ -65,6 +68,9 @@ export default function Cart() {
 
     setCartItems(updatedCart);
     localStorage.setItem('user_cart', JSON.stringify(updatedCart));
+    window.dispatchEvent(new CustomEvent('cartUpdated', {
+      detail: { cartCount: updatedCart.reduce((total, item) => total + (Number(item.quantity) || 1), 0) }
+    }));
 
     try {
       await API.delete(`/cart/${cartItemId}`);
@@ -101,7 +107,7 @@ export default function Cart() {
   return (
     <div className="min-h-screen bg-slate-100 pb-32 flex flex-col justify-between font-sans">
       <div>
-        <Header cartCount={cartItems.reduce((acc, i) => acc + (i.quantity || 1), 0)} />
+        <Header />
 
         <main className="px-4 pt-4 max-w-lg mx-auto">
           {/* Título de la vista */}

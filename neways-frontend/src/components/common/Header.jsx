@@ -1,9 +1,53 @@
-import React from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag } from 'lucide-react';
+import API from '../../services/api';
 
-export default function Header({ cartCount = 0 }) {
+const countCartItems = (items) => (
+  Array.isArray(items)
+    ? items.reduce((total, item) => total + (Number(item.quantity) || 1), 0)
+    : 0
+);
+
+export default function Header() {
   const navigate = useNavigate();
+  const [cartCount, setCartCount] = useState(0);
+
+  const loadCartCount = useCallback(async () => {
+    try {
+      const response = await API.get('/cart');
+      const items = response.data?.items || response.data || [];
+      setCartCount(countCartItems(items));
+    } catch {
+      console.warn('No se pudo obtener el contador del carrito desde la API.');
+      try {
+        const localCart = JSON.parse(localStorage.getItem('user_cart') || '[]');
+        setCartCount(countCartItems(localCart));
+      } catch (storageError) {
+        console.error('No se pudo leer el carrito local:', storageError);
+        setCartCount(0);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleCartUpdate = (event) => {
+      if (Number.isFinite(event.detail?.cartCount)) {
+        setCartCount(event.detail.cartCount);
+      } else {
+        loadCartCount();
+      }
+    };
+
+    Promise.resolve().then(loadCartCount);
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    window.addEventListener('storage', loadCartCount);
+
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+      window.removeEventListener('storage', loadCartCount);
+    };
+  }, [loadCartCount]);
 
   return (
     <header className="bg-white sticky top-0 z-40 px-4 py- shadow-sm border-b border-gray-100 flex items-center justify-between">

@@ -41,7 +41,7 @@ export default function CheckoutSuccess() {
     <div className="min-h-screen bg-[#f1f1f1] text-slate-800 pb-24 font-sans">
 
       {/* Header */}
-      <Header cartCount={0} />
+      <Header />
 
       {/* Contenido */}
       <div className="mx-auto w-full max-w-md min-h-screen bg-[#f1f1f1]">

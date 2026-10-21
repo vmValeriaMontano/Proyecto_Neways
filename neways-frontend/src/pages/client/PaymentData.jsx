@@ -142,7 +142,7 @@ export default function PaymentData() {
   return (
     <div className="min-h-screen bg-[#f3f4f6] pb-28 flex flex-col justify-between font-sans">
       <div>
-        <Header cartCount={cartItems.reduce((acc, item) => acc + (item.quantity || 1), 0)} />
+        <Header />
 
         <main className="px-5 pt-2 max-w-md mx-auto">
           <CheckoutSteps currentStep={2} />
