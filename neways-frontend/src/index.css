@@ -6,7 +6,7 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: #F8FAFC;
+  background-color: var(--site-background-color, #F8FAFC);
   color: #09090B;
 }
 
@@ -22,5 +22,5 @@ body {
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #8B5CF6;
+  background: var(--site-primary-color, #8B5CF6);
 }

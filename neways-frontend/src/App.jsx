@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import Login from './pages/Login';
@@ -20,6 +19,7 @@ import AboutUs from './pages/client/AboutUs';
 import Favorites from './pages/client/Favorites';
 
 import { AuthProvider } from './context/AuthContext';
+import { SiteCustomizationProvider } from './context/SiteCustomizationContext';
 
 // Componente para proteger la ruta de Admin (valida token Y rol de administrador)
 function PrivateRoute({ children }) {
@@ -86,9 +86,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <SiteCustomizationProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </SiteCustomizationProvider>
     </AuthProvider>
   );
 }

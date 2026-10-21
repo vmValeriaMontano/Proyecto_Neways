@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag } from 'lucide-react';
 import API from '../../services/api';
+import { useSiteCustomization } from '../../context/SiteCustomizationContext';
 
 const countCartItems = (items) => (
   Array.isArray(items)
@@ -11,7 +12,9 @@ const countCartItems = (items) => (
 
 export default function Header() {
   const navigate = useNavigate();
+  const { settings } = useSiteCustomization();
   const [cartCount, setCartCount] = useState(0);
+  const assetBaseUrl = API.defaults.baseURL.replace(/\/api\/?$/, '');
 
   const loadCartCount = useCallback(async () => {
     try {
@@ -53,10 +56,18 @@ export default function Header() {
     <header className="bg-white sticky top-0 z-40 px-4 py- shadow-sm border-b border-gray-100 flex items-center justify-between">
       {/* Logo NEWAYS */}
       <Link to="/" className="flex items-center gap-2">
-        <img src="/isotipo-morado-copia.png" alt="NEWAYS" className="h-20 md:h-16 lg:h-24 object-contain transition-all duration-300" />
+        <img
+          src={settings.header_symbol_logo_url ? `${assetBaseUrl}${settings.header_symbol_logo_url}` : '/isotipo-morado-copia.png'}
+          alt="NEWAYS"
+          className="h-20 md:h-16 lg:h-24 object-contain transition-all duration-300"
+        />
       </Link>
       <Link to="/" className="flex items-center gap-2">
-        <img src="/logo-morado-letra-copia.png" alt="NEWAYS" className="h-28 md:h-16 lg:h-32 object-contain transition-all duration-300" />
+        <img
+          src={settings.header_wordmark_logo_url ? `${assetBaseUrl}${settings.header_wordmark_logo_url}` : '/logo-morado-letra-copia.png'}
+          alt="NEWAYS"
+          className="h-28 md:h-16 lg:h-32 object-contain transition-all duration-300"
+        />
       </Link>
 
       {/* Iconos derechas: Búsqueda y Carrito */}

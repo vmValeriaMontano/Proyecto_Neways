@@ -1,11 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
+const siteSettingsController = require('../controllers/siteSettingsController');
+const uploadSiteLogo = require('../middlewares/uploadSiteLogo');
 const { authenticateToken, isAdmin } = require('../middlewares/auth');
 
 // PROTEGER TODAS LAS RUTAS: Requieren Token JWT válido y Rol Administrador
 router.use(authenticateToken);
 router.use(isAdmin);
+
+// --- Personalización del sitio ---
+router.get('/site-settings', siteSettingsController.getSettings);
+router.put('/site-settings', siteSettingsController.updateSettings);
+router.post('/site-settings/logos/:slot', uploadSiteLogo, siteSettingsController.uploadLogo);
 
 // --- Categorías ---
 router.get('/categories', adminController.getCategories);

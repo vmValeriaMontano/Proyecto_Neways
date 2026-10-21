@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import BottomNav from '../../components/common/BottomNav';
 import API from '../../services/api';
+import { useSiteCustomization } from '../../context/SiteCustomizationContext';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { settings } = useSiteCustomization();
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -56,23 +58,26 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28 flex flex-col justify-between">
+    <div className="min-h-screen pb-28 flex flex-col justify-between" style={{ backgroundColor: 'var(--site-background-color)' }}>
       <div>
         <Header />
 
         {/* Hero Banner */}
-        <section className="bg-gradient-to-br from-indigo-500 via-purple-500 to-indigo-600 text-white p-6 rounded-b-xl shadow-md text-left">
+        <section
+          className="text-white p-6 rounded-b-xl shadow-md text-left"
+          style={{ background: `linear-gradient(135deg, ${settings.primary_color}, ${settings.secondary_color})` }}
+        >
           <h1 className="text-2xl font-extrabold uppercase tracking-wide leading-snug">
-            UN NUEVO CAMINO AL RENDIMIENTO
+            {settings.hero_title}
           </h1>
-          <p className="text-xs text-indigo-100 mt-2 mb-4">
-            Prendas diseñadas para potenciar tu estilo de vida.
+          <p className="text-xs text-white/80 mt-2 mb-4">
+            {settings.hero_description}
           </p>
           <button
             onClick={() => navigate('/catalog')}
             className="bg-zinc-800 hover:bg-zinc-900 text-white font-bold text-xs py-2.5 px-6 rounded-lg tracking-wider transition"
           >
-            VER COLECCIÓN
+            {settings.hero_button}
           </button>
         </section>
 
@@ -82,9 +87,10 @@ export default function Home() {
             onClick={() => setSelectedCategory('Todos')}
             className={`text-xs font-medium px-5 py-1.5 rounded-full shrink-0 transition ${
               selectedCategory === 'Todos'
-                ? 'bg-purple-600 text-white shadow-sm'
+                ? 'text-white shadow-sm'
                 : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
             }`}
+            style={selectedCategory === 'Todos' ? { backgroundColor: settings.primary_color } : undefined}
           >
             Todos
           </button>
@@ -115,9 +121,10 @@ export default function Home() {
                   onClick={() => setSelectedCategory(catName)}
                   className={`text-xs font-medium px-5 py-1.5 rounded-full shrink-0 transition ${
                     selectedCategory === catName
-                      ? 'bg-purple-600 text-white shadow-sm'
+                      ? 'text-white shadow-sm'
                       : 'bg-gray-200 text-slate-700 hover:bg-gray-300'
                   }`}
+                  style={selectedCategory === catName ? { backgroundColor: settings.primary_color } : undefined}
                 >
                   {catName}
                 </button>
@@ -128,7 +135,7 @@ export default function Home() {
         {/* Sección Productos */}
         <section className="px-4">
           <h2 className="text-left font-bold text-slate-800 text-sm mb-3">
-            {selectedCategory === 'Descuentos' ? 'Productos en Oferta' : 'Lo Más Vendido'}
+            {selectedCategory === 'Descuentos' ? 'Productos en Oferta' : settings.products_heading}
           </h2>
 
           {loading ? (
@@ -171,7 +178,7 @@ export default function Home() {
                     </span>
 
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-purple-600 font-bold">
+                      <span className="text-xs font-bold" style={{ color: settings.primary_color }}>
                         ${finalPrice.toFixed(2)}
                       </span>
                       {discount > 0 && (
@@ -190,7 +197,7 @@ export default function Home() {
 
       <footer className="bg-zinc-800 text-white py-6 px-4 text-center mt-8">
         <p className="text-xs font-mono text-gray-300 max-w-xs mx-auto leading-relaxed">
-          "Involucrados en el estilo de vida deportivo, ofreciendo productos enfocados al bienestar y la alta calidad."
+          "{settings.footer_message}"
         </p>
 
         <Link

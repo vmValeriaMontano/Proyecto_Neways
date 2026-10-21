@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  Package, Tag, Layers, ShoppingBag, Users, MapPin, LogOut, Plus, Edit2, Trash2, RefreshCw, Eye 
+import { useSiteCustomization } from '../../context/SiteCustomizationContext';
+import {
+  Package, Tag, Layers, ShoppingBag, Users, MapPin, Palette, LogOut, Plus, Edit2, Trash2, RefreshCw, Eye
 } from 'lucide-react';
 
 const hasOrderCoordinates = (order) => (
@@ -20,6 +21,7 @@ const getOrderMapUrl = (order) => (
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
+  const { settings, setSettings } = useSiteCustomization();
   const [activeTab, setActiveTab] = useState('products');
 
   // Estados de datos
@@ -53,12 +55,11 @@ export default function AdminDashboard() {
   const [showDepartmentModal, setShowDepartmentModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [departmentForm, setDepartmentForm] = useState({ name: '', shipping_cost: '' });
+  const [siteSettingsForm, setSiteSettingsForm] = useState(settings);
+  const [savingSiteSettings, setSavingSiteSettings] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [activeTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       if (activeTab === 'products') {
@@ -77,11 +78,56 @@ export default function AdminDashboard() {
       } else if (activeTab === 'locations') {
         const res = await API.get('/admin/departments');
         setDepartments(res.data || []);
+      } else if (activeTab === 'settings') {
+        const res = await API.get('/admin/site-settings');
+        setSiteSettingsForm(res.data);
+        setSettings(res.data);
       }
     } catch (err) {
       console.error('Error al cargar datos:', err);
     } finally {
       setLoading(false);
+    }
+  }, [activeTab, setSettings]);
+
+  useEffect(() => {
+    // Loading tab data is a side effect; the request updates its loading and result state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, [fetchData]);
+
+  const handleSaveSiteSettings = async (e) => {
+    e.preventDefault();
+    setSavingSiteSettings(true);
+    try {
+      const { data } = await API.put('/admin/site-settings', siteSettingsForm);
+      setSiteSettingsForm(data);
+      setSettings(data);
+      alert('La personalización del sitio se guardó correctamente.');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error al guardar la personalización del sitio.');
+    } finally {
+      setSavingSiteSettings(false);
+    }
+  };
+
+  const handleUploadSiteLogo = async (event, slot) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('logo', file);
+    setUploadingLogo(slot);
+    try {
+      const { data } = await API.post(`/admin/site-settings/logos/${slot}`, formData);
+      setSiteSettingsForm(data);
+      setSettings(data);
+      alert('El logo se actualizó correctamente.');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error al subir el logo.');
+    } finally {
+      setUploadingLogo(null);
     }
   };
 
@@ -276,6 +322,15 @@ export default function AdminDashboard() {
               }`}
             >
               <Users size={18} /> Usuarios
+            </button>
+
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
+                activeTab === 'settings' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Palette size={18} /> Personalización
             </button>
           </nav>
         </div>
@@ -720,6 +775,145 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+            )}
+
+            {/* TAB PERSONALIZACIÓN */}
+            {activeTab === 'settings' && (
+              <div className="max-w-3xl">
+                <h2 className="text-2xl font-bold text-slate-800 mb-1">Personalización del sitio</h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Edita las frases principales y los colores de la página de inicio. Los cambios se mostrarán a todos los visitantes.
+                </p>
+
+                <form onSubmit={handleSaveSiteSettings} className="space-y-6">
+                  <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="font-semibold text-slate-800 mb-2">Logos del encabezado</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Sube imágenes PNG o WebP de hasta 5 MB. Se admiten logos con fondo transparente; el cambio se aplica al subir cada archivo.
+                    </p>
+                    <div className="grid gap-6 sm:grid-cols-2">
+                      {[
+                        ['symbol', 'Logo isotipo', 'header_symbol_logo_url', '/isotipo-morado-copia.png'],
+                        ['wordmark', 'Logo con texto', 'header_wordmark_logo_url', '/logo-morado-letra-copia.png']
+                      ].map(([slot, label, field, fallback]) => {
+                        const imageUrl = siteSettingsForm[field]
+                          ? `${API.defaults.baseURL.replace(/\/api\/?$/, '')}${siteSettingsForm[field]}`
+                          : fallback;
+                        return (
+                          <div key={slot} className="rounded-lg border border-slate-200 p-4">
+                            <p className="text-sm font-medium text-slate-700 mb-3">{label}</p>
+                            <div className="flex h-28 items-center justify-center rounded-lg bg-slate-50 p-3 mb-3">
+                              <img src={imageUrl} alt={`Vista previa: ${label}`} className="max-h-full max-w-full object-contain" />
+                            </div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2" htmlFor={`logo-${slot}`}>
+                              Seleccionar imagen
+                            </label>
+                            <input
+                              id={`logo-${slot}`}
+                              type="file"
+                              accept="image/png,image/webp"
+                              disabled={uploadingLogo !== null}
+                              onChange={(event) => handleUploadSiteLogo(event, slot)}
+                              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-purple-700 hover:file:bg-purple-100 disabled:opacity-60"
+                            />
+                            {uploadingLogo === slot && (
+                              <p className="mt-2 flex items-center gap-2 text-xs text-purple-700">
+                                <RefreshCw size={14} className="animate-spin" /> Subiendo logo...
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="font-semibold text-slate-800 mb-4">Frases de la página</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="hero-title" className="block text-sm font-medium text-slate-700 mb-1">Título principal</label>
+                        <input
+                          id="hero-title"
+                          type="text"
+                          required
+                          maxLength={300}
+                          value={siteSettingsForm.hero_title}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, hero_title: e.target.value })}
+                          className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-600 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="hero-description" className="block text-sm font-medium text-slate-700 mb-1">Descripción principal</label>
+                        <textarea
+                          id="hero-description"
+                          required
+                          maxLength={300}
+                          rows={2}
+                          value={siteSettingsForm.hero_description}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, hero_description: e.target.value })}
+                          className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-600 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="footer-message" className="block text-sm font-medium text-slate-700 mb-1">Frase del pie de página</label>
+                        <textarea
+                          id="footer-message"
+                          required
+                          maxLength={300}
+                          rows={3}
+                          value={siteSettingsForm.footer_message}
+                          onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, footer_message: e.target.value })}
+                          className="w-full border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-purple-600 outline-none"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="font-semibold text-slate-800 mb-2">Colores del sitio</h3>
+                    <p className="text-sm text-gray-500 mb-4">Elige un color o escribe su código hexadecimal.</p>
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      {[
+                        ['primary_color', 'Color principal'],
+                        ['secondary_color', 'Color secundario'],
+                        ['background_color', 'Color de fondo']
+                      ].map(([field, label]) => (
+                        <div key={field}>
+                          <label htmlFor={field} className="block text-sm font-medium text-slate-700 mb-2">{label}</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              aria-label={`Selector: ${label}`}
+                              type="color"
+                              value={siteSettingsForm[field]}
+                              onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, [field]: e.target.value })}
+                              className="h-10 w-12 cursor-pointer rounded border border-slate-300 p-1"
+                            />
+                            <input
+                              id={field}
+                              type="text"
+                              required
+                              pattern="#[0-9A-Fa-f]{6}"
+                              maxLength={7}
+                              value={siteSettingsForm[field]}
+                              onChange={(e) => setSiteSettingsForm({ ...siteSettingsForm, [field]: e.target.value })}
+                              className="min-w-0 w-full border border-slate-300 rounded-lg p-2.5 text-sm uppercase focus:ring-2 focus:ring-purple-600 outline-none"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <button
+                    type="submit"
+                    disabled={savingSiteSettings}
+                    className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white px-5 py-2.5 rounded-lg font-medium shadow-md transition"
+                  >
+                    {savingSiteSettings ? <RefreshCw className="animate-spin" size={18} /> : <Palette size={18} />}
+                    {savingSiteSettings ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                </form>
               </div>
             )}
           </>

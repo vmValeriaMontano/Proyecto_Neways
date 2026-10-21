@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 
 const authRoutes = require('./routes/authRoutes');
@@ -10,6 +11,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const adminRoutes = require('./routes/adminRoutes'); // <-- RUTA DE ADMINISTRADOR
+const siteSettingsRoutes = require('./routes/siteSettingsRoutes');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -17,6 +19,7 @@ const app = express();
 // Middlewares Globales
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Verificación básica de salud de API
 app.get('/api/health', (req, res) => {
@@ -30,6 +33,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/locations', locationRoutes); // <-- MÓDULO PÚBLICO DE UBICACIONES
+app.use('/api/site-settings', siteSettingsRoutes);
 app.use('/api/admin', adminRoutes); // <-- MÓDULO ADMINISTRATIVO COMPLETO
 
 // Manejo de errores
