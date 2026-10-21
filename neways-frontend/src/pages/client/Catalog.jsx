@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import BottomNav from '../../components/common/BottomNav';
@@ -110,8 +110,12 @@ export default function Catalog() {
 
   // Lógica de ordenamiento tomando en cuenta el precio final con descuento
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    const priceA = Number(a.discount) > 0 ? Number(a.price) * (1 - Number(a.discount) / 100) : Number(a.price);
-    const priceB = Number(b.discount) > 0 ? Number(b.price) * (1 - Number(b.discount) / 100) : Number(b.price);
+    const priceA = Number(a.discounted_price ?? (Number(a.discount) > 0
+      ? Number(a.price) * (1 - Number(a.discount) / 100)
+      : Number(a.price)));
+    const priceB = Number(b.discounted_price ?? (Number(b.discount) > 0
+      ? Number(b.price) * (1 - Number(b.discount) / 100)
+      : Number(b.price)));
 
     if (sortBy === 'precio-bajo') return priceA - priceB;
     if (sortBy === 'precio-alto') return priceB - priceA;
@@ -224,7 +228,9 @@ export default function Catalog() {
 
                 const originalPrice = Number(product.price || 0);
                 const discountPercent = Number(product.discount || 0);
-                const finalPrice = discountPercent > 0 ? originalPrice * (1 - discountPercent / 100) : originalPrice;
+                const finalPrice = Number(product.discounted_price ?? (
+                  discountPercent > 0 ? originalPrice * (1 - discountPercent / 100) : originalPrice
+                ));
 
                 const imageUrl =
                   product.image_url ||
@@ -241,7 +247,7 @@ export default function Catalog() {
                     {/* Badge de Descuento */}
                     {discountPercent > 0 && (
                       <span className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full z-10 shadow-sm">
-                        -{discountPercent}%
+                        {product.discount_label || `-${discountPercent}%`}
                       </span>
                     )}
 

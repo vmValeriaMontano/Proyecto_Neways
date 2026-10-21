@@ -1,18 +1,22 @@
 const pool = require('../config/db');
+const { getActiveDiscounts, quoteCart } = require('../services/discountService');
 
 async function getCart(req, res) {
   try {
     const result = await pool.query(
       `SELECT ci.id AS cart_item_id, ci.quantity, v.id AS variant_id, v.size, v.color, v.stock,
-              p.id AS product_id, p.name, p.price, p.discount, p.image_url
+              p.id AS product_id, p.name, p.price, p.discount AS legacy_discount,
+              p.category_id, c.name AS category_name, p.image_url
        FROM cart_items ci
        JOIN product_variants v ON v.id = ci.variant_id
        JOIN products p ON p.id = v.product_id
+       LEFT JOIN categories c ON c.id = p.category_id
        WHERE ci.user_id = $1
        ORDER BY ci.created_at DESC`,
       [req.user.id]
     );
-    res.json(result.rows);
+    const discounts = await getActiveDiscounts(pool);
+    res.json(quoteCart(result.rows, discounts).items);
   } catch (err) {
     console.error("Error en getCart:", err);
     res.status(500).json({ message: "Error al obtener el carrito." });

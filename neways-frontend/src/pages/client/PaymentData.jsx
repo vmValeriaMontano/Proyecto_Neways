@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import CheckoutSteps from '../../components/common/CheckoutSteps';
@@ -12,6 +12,8 @@ export default function PaymentData() {
   const [submitting, setSubmitting] = useState(false);
   const [cartItems, setCartItems] = useState([]);
   const [shipping, setShipping] = useState(null);
+  const [couponQuote, setCouponQuote] = useState(null);
+  const [couponMessage, setCouponMessage] = useState('');
   const [form, setForm] = useState({
     cardNumber: '',
     cardName: '',
@@ -35,8 +37,19 @@ export default function PaymentData() {
         try {
           const response = await API.get('/cart');
           const items = response.data?.items || response.data || [];
-          setCartItems(items.length ? items : JSON.parse(localStorage.getItem('user_cart') || '[]'));
-        } catch (error) {
+          const checkoutItems = items.length ? items : JSON.parse(localStorage.getItem('user_cart') || '[]');
+          setCartItems(checkoutItems);
+          const savedCode = localStorage.getItem('discount_code');
+          if (savedCode) {
+            try {
+              const quoteResponse = await API.post('/discounts/validate', { code: savedCode });
+              setCouponQuote(quoteResponse.data);
+            } catch (couponError) {
+              localStorage.removeItem('discount_code');
+              setCouponMessage(couponError.response?.data?.message || 'El código ya no es válido y no se aplicará.');
+            }
+          }
+        } catch {
           const localCart = JSON.parse(localStorage.getItem('user_cart') || '[]');
           setCartItems(localCart);
         }
@@ -54,16 +67,24 @@ export default function PaymentData() {
 
   const subtotal = useMemo(
     () =>
-      cartItems.reduce((sum, item) => {
+      couponQuote?.subtotal ?? cartItems.reduce((sum, item) => {
         const price = Number(item.price || item.product?.price || item.variant?.price || 0);
         const qty = Number(item.quantity || 1);
         return sum + price * qty;
       }, 0),
-    [cartItems]
+    [cartItems, couponQuote]
   );
 
+  const discountTotal = useMemo(
+    () => couponQuote?.discountTotal ?? cartItems.reduce(
+      (sum, item) => sum + Number(item.line_discount || 0),
+      0
+    ),
+    [cartItems, couponQuote]
+  );
   const shippingCost = Number(shipping?.shippingCost || 0);
-  const total = subtotal + shippingCost;
+  const finalSubtotal = couponQuote?.finalSubtotal ?? Math.max(0, subtotal - discountTotal);
+  const total = finalSubtotal + shippingCost;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -107,6 +128,7 @@ export default function PaymentData() {
         addressReference: shipping.reference || shipping.addressReference || null,
         latitude: shipping.latitude,
         longitude: shipping.longitude,
+        couponCode: couponQuote?.code || null,
         card: {
           cardNumber: form.cardNumber,
           cardName: form.cardName,
@@ -120,6 +142,7 @@ export default function PaymentData() {
       localStorage.setItem('checkout_result', JSON.stringify(response.data));
       localStorage.removeItem('user_cart');
       localStorage.removeItem('checkout_shipping');
+      localStorage.removeItem('discount_code');
 
       navigate('/checkoutSuccess');
     } catch (error) {
@@ -172,6 +195,15 @@ export default function PaymentData() {
                   <span>Subtotal</span>
                   <span className="font-bold text-slate-800">${subtotal.toFixed(2)}</span>
                 </div>
+                {discountTotal > 0 && (
+                  <div className="mt-2 flex justify-between text-xs text-emerald-700">
+                    <span>Descuentos aplicados</span>
+                    <span className="font-bold">-${discountTotal.toFixed(2)}</span>
+                  </div>
+                )}
+                {couponMessage && (
+                  <p role="status" className="mt-2 text-xs text-amber-700">{couponMessage}</p>
+                )}
                 <div className="flex justify-between text-xs text-gray-600 mt-2">
                   <span>Envío</span>
                   <span className="font-bold text-slate-800">${Number(shippingCost || 0).toFixed(2)}</span>

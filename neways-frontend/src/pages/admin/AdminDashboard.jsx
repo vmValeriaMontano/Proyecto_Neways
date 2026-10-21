@@ -2,6 +2,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import API from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useSiteCustomization } from '../../context/SiteCustomizationContext';
+import DiscountManagement from './DiscountManagement';
 import {
   Package, Tag, Layers, ShoppingBag, Users, MapPin, Palette, LogOut, Plus, Edit2, Trash2, RefreshCw, Eye
 } from 'lucide-react';
@@ -298,6 +299,15 @@ export default function AdminDashboard() {
             </button>
 
             <button
+              onClick={() => setActiveTab('discounts')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
+                activeTab === 'discounts' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Tag size={18} /> Descuentos
+            </button>
+
+            <button
               onClick={() => setActiveTab('orders')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition ${
                 activeTab === 'orders' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-slate-800 hover:text-white'
@@ -408,7 +418,7 @@ export default function AdminDashboard() {
                             <span className="font-bold text-purple-600">${Number(p.price).toFixed(2)}</span>
                             {Number(p.discount) > 0 && (
                               <span className="ml-2 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">
-                                -{p.discount}% Desc.
+                                {p.discount_label || `-${p.discount}% Desc.`}
                               </span>
                             )}
                           </td>
@@ -438,7 +448,7 @@ export default function AdminDashboard() {
                                     price: p.price || '',
                                     category_id: p.category_id || '',
                                     image_url: p.image_url || '',
-                                    discount: p.discount !== undefined && p.discount !== null ? p.discount : ''
+                                    discount: p.legacy_discount ?? p.discount ?? ''
                                   });
                                   setShowProductModal(true);
                                 }}
@@ -462,6 +472,8 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
+
+            {activeTab === 'discounts' && <DiscountManagement />}
 
             {/* TAB CATEGORÍAS */}
             {activeTab === 'categories' && (

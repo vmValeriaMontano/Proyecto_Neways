@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Truck, CircleCheck } from 'lucide-react';
 import Header from '../../components/common/Header';
@@ -33,6 +32,7 @@ export default function CheckoutSuccess() {
   }
 
   const subtotal = Number(checkoutResult.subtotal || 0);
+  const discountTotal = Number(checkoutResult.discountTotal || 0);
   const shipping = Number(checkoutResult.shipping || 0);
   const total = Number(checkoutResult.total || 0);
   const orderId = checkoutResult.orderId || '00000';
@@ -87,6 +87,17 @@ export default function CheckoutSuccess() {
                   ${subtotal.toFixed(2)}
                 </span>
               </div>
+
+              {discountTotal > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[15px] text-emerald-700">
+                    Descuentos {checkoutResult.couponCode && `(${checkoutResult.couponCode})`}
+                  </span>
+                  <span className="text-[15px] font-medium text-emerald-700">
+                    -${discountTotal.toFixed(2)}
+                  </span>
+                </div>
+              )}
 
               <div className="flex justify-between items-center">
                 <span className="text-[15px] text-gray-600">

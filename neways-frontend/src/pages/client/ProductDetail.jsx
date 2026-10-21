@@ -118,13 +118,16 @@ export default function ProductDetails() {
     product?.imageUrl ||
     (product?.images && product?.images[0]);
 
-  // Cálculos de Precios y Descuento
+  // Use the selected variant so color- and size-specific promotions are reflected.
   const basePrice = Number(product?.price || 0);
-  const discountPercent = Number(product?.discount || 0);
-  const hasDiscount = discountPercent > 0;
-  const finalPrice = hasDiscount
-    ? basePrice * (1 - discountPercent / 100)
-    : basePrice;
+  const selectedPrice = currentVariant || product;
+  const discountPercent = Number(selectedPrice?.discount ?? product?.discount ?? 0);
+  const discountLabel = selectedPrice?.discount_label || product?.discount_label;
+  const hasDiscount = Number(selectedPrice?.discount_amount ?? product?.discount_amount ?? 0) > 0;
+  const finalPrice = Number(
+    selectedPrice?.discounted_price
+      ?? (hasDiscount ? basePrice * (1 - discountPercent / 100) : basePrice)
+  );
 
   return (
     <div className="min-h-screen bg-[#f3f3f3] pb-28 flex flex-col justify-between font-sans">
@@ -136,7 +139,7 @@ export default function ProductDetails() {
           <div className="w-full h-64 md:h-[450px] bg-white rounded-3xl flex items-end p-6 relative overflow-hidden shadow-xl border border-gray-100">
             {hasDiscount && (
               <span className="absolute top-4 left-4 bg-red-500 text-white text-xs font-extrabold px-3 py-1 rounded-full z-20 shadow-md">
-                -{discountPercent}% OFF
+                {discountLabel || `-${discountPercent}%`} OFF
               </span>
             )}
 

@@ -14,6 +14,13 @@ router.get('/site-settings', siteSettingsController.getSettings);
 router.put('/site-settings', siteSettingsController.updateSettings);
 router.post('/site-settings/logos/:slot', uploadSiteLogo, siteSettingsController.uploadLogo);
 
+// --- Descuentos y cupones ---
+const discountController = require('../controllers/discountController');
+router.get('/discounts', discountController.getAdminDiscounts);
+router.post('/discounts', discountController.saveDiscount);
+router.put('/discounts/:id', discountController.saveDiscount);
+router.delete('/discounts/:id', discountController.deleteDiscount);
+
 // --- Categorías ---
 router.get('/categories', adminController.getCategories);
 router.post('/categories', adminController.createCategory);

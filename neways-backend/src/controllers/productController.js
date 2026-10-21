@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { calculateItemPrice, getActiveDiscounts } = require('../services/discountService');
 
 // 1. Obtener todas las categorías para la tienda cliente
 async function getCategories(req, res) {
@@ -15,6 +16,8 @@ async function getCategories(req, res) {
 async function getAllProducts(req, res) {
   try {
     const { category, search } = req.query;
+    const onlyDiscounted = category
+      && ['descuentos', 'ofertas'].includes(category.toLowerCase());
     let query = `
       SELECT p.id, p.name, p.description, p.price, p.discount, p.image_url, p.category_id, c.name AS category_name
       FROM products p
@@ -24,9 +27,7 @@ async function getAllProducts(req, res) {
     const params = [];
 
     if (category && category !== 'Todos') {
-      if (category.toLowerCase() === 'descuentos' || category.toLowerCase() === 'ofertas') {
-        query += ` AND p.discount > 0`;
-      } else {
+      if (!onlyDiscounted) {
         params.push(category);
         query += ` AND c.name = $${params.length}`;
       }
@@ -40,7 +41,20 @@ async function getAllProducts(req, res) {
     query += ` ORDER BY p.created_at DESC`;
 
     const result = await pool.query(query, params);
-    res.json(result.rows);
+    const discounts = await getActiveDiscounts(pool);
+    const products = result.rows.map((product) => {
+      const price = calculateItemPrice(product, discounts);
+      return {
+        ...product,
+        legacy_discount: Number(product.discount || 0),
+        discount: Number(price.discountPercent.toFixed(2)),
+        discount_amount: Number(price.discountAmount.toFixed(2)),
+        discount_label: price.discountLabel,
+        discount_name: price.discountName,
+        discounted_price: Number(price.finalPrice.toFixed(2)),
+      };
+    });
+    res.json(onlyDiscounted ? products.filter((product) => product.discount_amount > 0) : products);
   } catch (err) {
     console.error("Error en getAllProducts:", err);
     res.status(500).json({ message: "Error al obtener productos." });
@@ -69,7 +83,28 @@ async function getProductById(req, res) {
     );
 
     const product = productResult.rows[0];
-    product.variants = variantsResult.rows;
+    const discounts = await getActiveDiscounts(pool);
+    const legacyDiscount = Number(product.discount || 0);
+    const price = calculateItemPrice({ ...product, legacy_discount: legacyDiscount }, discounts);
+    product.legacy_discount = legacyDiscount;
+    product.discount = Number(price.discountPercent.toFixed(2));
+    product.discount_amount = Number(price.discountAmount.toFixed(2));
+    product.discount_label = price.discountLabel;
+    product.discounted_price = Number(price.finalPrice.toFixed(2));
+    product.variants = variantsResult.rows.map((variant) => {
+      const variantPrice = calculateItemPrice({
+        ...product,
+        ...variant,
+        legacy_discount: legacyDiscount,
+      }, discounts);
+      return {
+        ...variant,
+        discount: Number(variantPrice.discountPercent.toFixed(2)),
+        discount_amount: Number(variantPrice.discountAmount.toFixed(2)),
+        discount_label: variantPrice.discountLabel,
+        discounted_price: Number(variantPrice.finalPrice.toFixed(2)),
+      };
+    });
 
     res.json(product);
   } catch (err) {

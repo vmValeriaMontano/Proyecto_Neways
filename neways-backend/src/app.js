@@ -12,6 +12,7 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 const locationRoutes = require('./routes/locationRoutes');
 const adminRoutes = require('./routes/adminRoutes'); // <-- RUTA DE ADMINISTRADOR
 const siteSettingsRoutes = require('./routes/siteSettingsRoutes');
+const discountRoutes = require('./routes/discountRoutes');
 const errorHandler = require('./middlewares/errorHandler');
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/locations', locationRoutes); // <-- MÓDULO PÚBLICO DE UBICACIONES
 app.use('/api/site-settings', siteSettingsRoutes);
+app.use('/api/discounts', discountRoutes);
 app.use('/api/admin', adminRoutes); // <-- MÓDULO ADMINISTRATIVO COMPLETO
 
 // Manejo de errores

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/common/Header';
 import BottomNav from '../../components/common/BottomNav';
@@ -10,25 +10,48 @@ export default function Cart() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
-  const [discount, setDiscount] = useState(0);
+  const [couponQuote, setCouponQuote] = useState(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponMessage, setCouponMessage] = useState('');
 
-  // Cargar ítems del carrito
-  useEffect(() => {
-    fetchCart();
-  }, []);
-
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await API.get('/cart');
-      setCartItems(response.data?.items || response.data || []);
-    } catch (error) {
+      const items = response.data?.items || response.data || [];
+      setCartItems(items);
+      const savedCode = localStorage.getItem('discount_code');
+      if (savedCode) {
+        setCouponCode(savedCode);
+        try {
+          const quoteResponse = await API.post('/discounts/validate', { code: savedCode });
+          setCouponQuote(quoteResponse.data);
+          setCouponMessage(`Código ${quoteResponse.data.code} aplicado.`);
+        } catch (error) {
+          localStorage.removeItem('discount_code');
+          setCouponQuote(null);
+          setCouponMessage(error.response?.data?.message || 'El código guardado ya no es válido.');
+        }
+      }
+    } catch {
       console.info('Ruta /cart no detectada en backend. Usando almacenamiento local.');
       const localCart = JSON.parse(localStorage.getItem('user_cart') || '[]');
       setCartItems(localCart);
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Load cart contents and revalidate a previously applied code.
+  useEffect(() => {
+    // The request updates cart state asynchronously.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchCart();
+  }, [fetchCart]);
+
+  const clearAppliedCoupon = () => {
+    setCouponQuote(null);
+    setCouponMessage('');
+    localStorage.removeItem('discount_code');
   };
 
   // Cambiar cantidad (+ / -)
@@ -46,6 +69,7 @@ export default function Cart() {
     });
 
     setCartItems(updatedCart);
+    clearAppliedCoupon();
     localStorage.setItem('user_cart', JSON.stringify(updatedCart));
     window.dispatchEvent(new CustomEvent('cartUpdated', {
       detail: { cartCount: updatedCart.reduce((total, item) => total + (Number(item.quantity) || 1), 0) }
@@ -54,7 +78,7 @@ export default function Cart() {
     // Intentar sync con Backend
     try {
       await API.put(`/cart/${cartItemId}`, { quantity: newQty });
-    } catch (error) {
+    } catch {
       console.warn('No se pudo sincronizar la cantidad con la API');
     }
   };
@@ -67,6 +91,7 @@ export default function Cart() {
     });
 
     setCartItems(updatedCart);
+    clearAppliedCoupon();
     localStorage.setItem('user_cart', JSON.stringify(updatedCart));
     window.dispatchEvent(new CustomEvent('cartUpdated', {
       detail: { cartCount: updatedCart.reduce((total, item) => total + (Number(item.quantity) || 1), 0) }
@@ -74,35 +99,45 @@ export default function Cart() {
 
     try {
       await API.delete(`/cart/${cartItemId}`);
-    } catch (error) {
+    } catch {
       console.warn('No se pudo eliminar el producto en la API');
     }
   };
 
-  // Aplicar cupón de descuento ficticio
-  const handleApplyCoupon = (e) => {
+  const handleApplyCoupon = async (e) => {
     e.preventDefault();
-    if (couponCode.trim().toUpperCase() === 'NEWAYS10') {
-      setDiscount(0.10); // 10% de descuento
-      alert('¡Cupón del 10% aplicado con éxito!');
-    } else {
-      alert('Cupón no válido');
-      setDiscount(0);
+    if (!couponCode.trim()) {
+      clearAppliedCoupon();
+      return;
+    }
+    setCouponLoading(true);
+    setCouponMessage('');
+    try {
+      const response = await API.post('/discounts/validate', { code: couponCode });
+      setCouponQuote(response.data);
+      setCouponCode(response.data.code);
+      setCouponMessage(`Código ${response.data.code} aplicado.`);
+      localStorage.setItem('discount_code', response.data.code);
+    } catch (error) {
+      clearAppliedCoupon();
+      setCouponMessage(error.response?.data?.message || 'No se pudo validar el código.');
+    } finally {
+      setCouponLoading(false);
     }
   };
 
-  // Cálculos del Total tomando en cuenta el descuento del producto
-  const subtotal = cartItems.reduce((acc, item) => {
-    const basePrice = Number(item.price || item.product?.price || 0);
-    const discountPercent = Number(item.discount || item.product?.discount || 0);
-    const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent / 100) : basePrice;
-    const qty = Number(item.quantity || 1);
-    return acc + finalPrice * qty;
-  }, 0);
-
-  const discountAmount = subtotal * discount;
-  const shippingCost = subtotal > 0 ? (subtotal > 50 ? 0 : 3.50) : 0; // Envío gratis si pasa de $50
-  const grandTotal = Math.max(0, subtotal - discountAmount + shippingCost);
+  const subtotal = couponQuote?.subtotal ?? cartItems.reduce(
+    (sum, item) => sum + Number(item.price || item.product?.price || 0) * Number(item.quantity || 1),
+    0
+  );
+  const discountTotal = couponQuote?.discountTotal ?? cartItems.reduce(
+    (sum, item) => sum + Number(item.line_discount || 0),
+    0
+  );
+  const couponDiscount = couponQuote?.couponDiscount ?? 0;
+  const finalSubtotal = couponQuote?.finalSubtotal ?? Math.max(0, subtotal - discountTotal);
+  const shippingCost = finalSubtotal > 0 ? (finalSubtotal > 50 ? 0 : 3.50) : 0;
+  const grandTotal = finalSubtotal + shippingCost;
 
   return (
     <div className="min-h-screen bg-slate-100 pb-32 flex flex-col justify-between font-sans">
@@ -146,8 +181,10 @@ export default function Cart() {
                   const name = item.name || item.product?.name || 'Producto';
                   
                   const basePrice = Number(item.price || 0);
-                  const discountPercent = Number(item.discount || 0);
-                  const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent / 100) : basePrice;
+                  const quoteItem = couponQuote?.items.find((quote) => quote.cart_item_id === item.cart_item_id);
+                  const discountPercent = Number(quoteItem?.discount ?? item.discount ?? 0);
+                  const finalPrice = Number(quoteItem?.final_price ?? item.final_price ?? basePrice);
+                  const discountLabel = quoteItem?.discount_label || item.discount_label;
 
                   const imageUrl = item.image_url || item.product?.image_url;
                   const color = item.color;
@@ -161,7 +198,7 @@ export default function Cart() {
                       {/* Badge de descuento en el carrito */}
                       {discountPercent > 0 && (
                         <span className="absolute top-2 left-2 bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full z-10 shadow-sm">
-                          -{discountPercent}%
+                          {discountLabel || `-${discountPercent}%`}
                         </span>
                       )}
 
@@ -236,30 +273,42 @@ export default function Cart() {
               <form onSubmit={handleApplyCoupon} className="flex gap-2 mt-1">
                 <input
                   type="text"
-                  placeholder="Código de cupón (ej. NEWAYS10)"
+                  placeholder="Código de descuento"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   className="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-slate-700 outline-none focus:border-purple-500"
                 />
                 <button
                   type="submit"
-                  className="bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs px-4 py-2 rounded-xl transition"
+                  disabled={couponLoading}
+                  className="bg-slate-800 hover:bg-slate-900 disabled:opacity-60 text-white font-bold text-xs px-4 py-2 rounded-xl transition"
                 >
-                  Aplicar
+                  {couponLoading ? 'Validando...' : 'Aplicar'}
                 </button>
               </form>
+              {couponMessage && (
+                <p role="status" className={`text-xs ${couponQuote ? 'text-emerald-700' : 'text-red-600'}`}>
+                  {couponMessage}
+                </p>
+              )}
 
               {/* Resumen de la Orden */}
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2 mt-2 text-xs">
                 <div className="flex justify-between text-gray-500">
-                  <span>Subtotal con descuento</span>
+                  <span>Subtotal</span>
                   <span className="font-semibold text-slate-700">${subtotal.toFixed(2)}</span>
                 </div>
 
-                {discount > 0 && (
+                {discountTotal > 0 && (
                   <div className="flex justify-between text-emerald-600">
-                    <span>Cupón ({discount * 100}%)</span>
-                    <span className="font-semibold">-${discountAmount.toFixed(2)}</span>
+                    <span>Descuentos aplicados</span>
+                    <span className="font-semibold">-${discountTotal.toFixed(2)}</span>
+                  </div>
+                )}
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Código {couponQuote.code}</span>
+                    <span className="font-semibold">-${couponDiscount.toFixed(2)}</span>
                   </div>
                 )}
 
