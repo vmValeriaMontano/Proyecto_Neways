@@ -61,7 +61,7 @@ export default function Catalog() {
     const productId = product.id || product._id;
     const isFav = favoriteIds.includes(productId);
 
-    // Actualización optimista de la UI (cambia inmediatamente)
+    // Actualización optimista de la UI
     const updatedFavIds = isFav
       ? favoriteIds.filter((id) => id !== productId)
       : [...favoriteIds, productId];
@@ -85,31 +85,41 @@ export default function Catalog() {
     }
   };
 
-  // Lógica de filtrado por búsqueda y categoría
+  // Lógica de filtrado por búsqueda y categoría / descuento
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    if (selectedCategory === 'Todos') return matchesSearch;
+
+    if (!matchesSearch) return false;
+
+    if (selectedCategory === 'Todos') {
+      return true;
+    }
+
+    if (selectedCategory === 'Descuentos') {
+      return Number(product.discount) > 0;
+    }
 
     const catName = product.category_name || product.category?.name || product.category || '';
     const catId = product.category_id || product.categoryId;
 
-    const matchesCategory =
+    return (
       String(catName).toLowerCase() === String(selectedCategory).toLowerCase() ||
-      String(catId) === String(selectedCategory);
-
-    return matchesSearch && matchesCategory;
+      String(catId) === String(selectedCategory)
+    );
   });
 
-  // Lógica de ordenamiento
+  // Lógica de ordenamiento tomando en cuenta el precio final con descuento
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortBy === 'precio-bajo') return Number(a.price) - Number(b.price);
-    if (sortBy === 'precio-alto') return Number(b.price) - Number(a.price);
+    const priceA = Number(a.discount) > 0 ? Number(a.price) * (1 - Number(a.discount) / 100) : Number(a.price);
+    const priceB = Number(b.discount) > 0 ? Number(b.price) * (1 - Number(b.discount) / 100) : Number(b.price);
+
+    if (sortBy === 'precio-bajo') return priceA - priceB;
+    if (sortBy === 'precio-alto') return priceB - priceA;
     return (b.id || b._id) - (a.id || a._id);
   });
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-28 flex flex-col justify-between">
+    <div className="min-h-screen bg-slate-100 pb-28 flex flex-col justify-between font-sans">
       <div>
         {/* Reutilización del Header global */}
         <Header cartCount={3} />
@@ -129,35 +139,53 @@ export default function Catalog() {
             />
           </div>
 
-          {/* Filtros dinámicos por Categoría */}
+          {/* Filtros dinámicos por Categoría e Inclusión de Descuentos */}
           <div className="flex items-center justify-start gap-2 overflow-x-auto no-scrollbar mb-3">
             <button
               onClick={() => setSelectedCategory('Todos')}
               className={`text-xs font-medium px-4 py-1.5 rounded-full shrink-0 transition ${
                 selectedCategory === 'Todos'
-                  ? 'bg-purple-500 text-white shadow-sm'
+                  ? 'bg-purple-600 text-white shadow-sm'
                   : 'bg-white text-slate-700 hover:bg-gray-200 border border-gray-200'
               }`}
             >
               Todos
             </button>
 
-            {categories.map((cat) => {
-              const catName = cat.name || cat.nombre || cat.id;
-              return (
-                <button
-                  key={cat.id || cat._id || catName}
-                  onClick={() => setSelectedCategory(catName)}
-                  className={`text-xs font-medium px-4 py-1.5 rounded-full shrink-0 transition ${
-                    selectedCategory === catName
-                      ? 'bg-purple-500 text-white shadow-sm'
-                      : 'bg-white text-slate-700 hover:bg-gray-200 border border-gray-200'
-                  }`}
-                >
-                  {catName}
-                </button>
-              );
-            })}
+            {/* Categoría Automática Única para Ofertas */}
+            <button
+              onClick={() => setSelectedCategory('Descuentos')}
+              className={`text-xs font-medium px-4 py-1.5 rounded-full shrink-0 transition ${
+                selectedCategory === 'Descuentos'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
+              }`}
+            >
+              🔥 Descuentos
+            </button>
+
+            {/* Categorías provenientes de la BD (Excluyendo duplicados de "Descuentos") */}
+            {categories
+              .filter((cat) => {
+                const name = (cat.name || cat.nombre || '').toLowerCase().trim();
+                return name !== 'descuentos' && name !== 'ofertas' && name !== 'descuento';
+              })
+              .map((cat) => {
+                const catName = cat.name || cat.nombre || cat.id;
+                return (
+                  <button
+                    key={cat.id || cat._id || catName}
+                    onClick={() => setSelectedCategory(catName)}
+                    className={`text-xs font-medium px-4 py-1.5 rounded-full shrink-0 transition ${
+                      selectedCategory === catName
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'bg-white text-slate-700 hover:bg-gray-200 border border-gray-200'
+                    }`}
+                  >
+                    {catName}
+                  </button>
+                );
+              })}
           </div>
 
           {/* Opciones de Ordenar por y Filtros avanzados */}
@@ -186,28 +214,41 @@ export default function Catalog() {
             <p className="text-xs text-center text-gray-400 py-10">Cargando catálogo...</p>
           ) : sortedProducts.length === 0 ? (
             <p className="text-xs text-center text-gray-400 py-10">
-              No se encontraron productos disponibles.
+              No se encontraron productos disponibles en "{selectedCategory}".
             </p>
           ) : (
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {sortedProducts.map((product) => {
                 const id = product.id || product._id;
                 const isFavorite = favoriteIds.includes(id);
-                const price = typeof product.price === 'number'
-                  ? `$${Number(product.price).toFixed(2)}`
-                  : product.price || '$0.00';
-                const imageUrl = product.image_url || product.image || product.imageUrl || (product.images && product.images[0]);
+
+                const originalPrice = Number(product.price || 0);
+                const discountPercent = Number(product.discount || 0);
+                const finalPrice = discountPercent > 0 ? originalPrice * (1 - discountPercent / 100) : originalPrice;
+
+                const imageUrl =
+                  product.image_url ||
+                  product.image ||
+                  product.imageUrl ||
+                  (product.images && product.images[0]);
 
                 return (
                   <div
                     key={id}
                     onClick={() => navigate(`/productDetail/${id}`)}
-                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative"
+                    className="bg-white rounded-2xl p-2 shadow-sm cursor-pointer border border-gray-100 flex flex-col justify-between relative overflow-hidden hover:shadow-md transition"
                   >
+                    {/* Badge de Descuento */}
+                    {discountPercent > 0 && (
+                      <span className="absolute top-3 left-3 bg-red-500 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full z-10 shadow-sm">
+                        -{discountPercent}%
+                      </span>
+                    )}
+
                     {/* Botón Favoritos (Corazón interactivo) */}
                     <button
                       onClick={(e) => handleToggleFavorite(e, product)}
-                      className={`absolute top-3 right-3 text-3xl z-10 transition-transform active:scale-125 ${
+                      className={`absolute top-2 right-2 text-2xl z-10 transition-transform active:scale-125 ${
                         isFavorite ? 'text-red-500' : 'text-gray-400 hover:text-red-400'
                       }`}
                       title={isFavorite ? 'Quitar de Favoritos' : 'Agregar a Favoritos'}
@@ -216,7 +257,7 @@ export default function Catalog() {
                     </button>
 
                     {/* Contenedor de Imagen */}
-                    <div className="w-full  aspect-square bg-gray-200 rounded-xl mb-2 overflow-hidden flex items-center justify-center">
+                    <div className="w-full aspect-square bg-gray-200 rounded-xl mb-2 overflow-hidden flex items-center justify-center">
                       {imageUrl ? (
                         <img
                           src={imageUrl}
@@ -233,9 +274,17 @@ export default function Catalog() {
                       <span className="text-xs font-semibold text-slate-800 block line-clamp-1">
                         {product.name || 'Producto'}
                       </span>
-                      <span className="text-xs text-indigo-600 font-bold block mt-0.5">
-                        {price}
-                      </span>
+
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs text-indigo-600 font-extrabold">
+                          ${finalPrice.toFixed(2)}
+                        </span>
+                        {discountPercent > 0 && (
+                          <span className="text-[10px] text-gray-400 line-through">
+                            ${originalPrice.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
