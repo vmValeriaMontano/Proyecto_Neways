@@ -74,6 +74,14 @@ export default function ProductDetails() {
   const isCombinationAvailable = currentVariant && currentStock > 0;
 
   const handleAddToCart = async () => {
+    // Validar si el usuario ha iniciado sesión
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("Debes iniciar sesión para agregar productos a tu carrito.");
+      navigate("/login");
+      return;
+    }
+
     if (!currentVariant) {
       alert("Esta combinación de talla y color no está disponible.");
       return;
