@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+const apiUrl = import.meta.env.VITE_API_URL.replace(/\/+$/, '');
+const apiBaseUrl = /\/api$/.test(apiUrl) ? apiUrl : `${apiUrl}/api`;
+
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: apiBaseUrl,
 });
 
 // Interceptor para agregar token a peticiones protegidas

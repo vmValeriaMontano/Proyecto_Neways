@@ -1,12 +1,20 @@
-const { Pool } = require('pg');
 require('dotenv').config();
+const { Pool } = require('pg');
+
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+    throw new Error('DATABASE_URL must be set to connect to PostgreSQL');
+}
+
+const localHosts = new Set(['localhost', '127.0.0.1', '[::1]']);
+const databaseHost = new URL(databaseUrl).hostname.toLowerCase();
+const ssl = !localHosts.has(databaseHost)
+    ? { rejectUnauthorized: false }
+    : false;
 
 const pool = new Pool({
-    user: process.env.DB_USER,
-    host: process.env.DB_HOST,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
+    connectionString: databaseUrl,
+    ssl,
 });
 
 pool.connect()

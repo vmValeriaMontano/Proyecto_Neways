@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import axios from "axios";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import Nav from "../components/Nav"; 
+import API from "../services/api";
 
 const Login = ({ onLoginSuccess }) => {
   const [formData, setFormData] = useState({
@@ -21,10 +21,8 @@ const Login = ({ onLoginSuccess }) => {
     setError("");
     setLoading(true);
 
-    const endpoint = "http://localhost:5000/api/auth/login";
-
     try {
-      const response = await axios.post(endpoint, formData);
+      const response = await API.post("/auth/login", formData);
 
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);

@@ -18,9 +18,30 @@ const errorHandler = require('./middlewares/errorHandler');
 const app = express();
 
 // Middlewares Globales
-app.use(cors());
+const frontendOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(origin => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  ...frontendOrigins,
+  'http://localhost:5173',
+  'http://localhost:3000',
+]);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    callback(null, !origin || allowedOrigins.has(origin));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
 
 // Verificación básica de salud de API
 app.get('/api/health', (req, res) => {
@@ -41,7 +62,7 @@ app.use('/api/admin', adminRoutes); // <-- MÓDULO ADMINISTRATIVO COMPLETO
 // Manejo de errores
 app.use(errorHandler);
 
-const PORT = process.env.PORT ||5000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Servidor de Neways escuchando en el puerto ${PORT}`);
 });
